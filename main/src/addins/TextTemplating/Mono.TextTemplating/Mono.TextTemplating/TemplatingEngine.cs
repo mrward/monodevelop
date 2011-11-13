@@ -667,6 +667,7 @@ namespace Mono.TextTemplating
 		static void AddIndentHelpers (CodeTypeDeclaration type, TemplateSettings settings)
 		{
 			var stringTypeRef = TypeRef<string> ();
+			var boolTypeRef = TypeRef<bool> ();
 			var thisRef = new CodeThisReferenceExpression ();
 			var zeroPrim = new CodePrimitiveExpression (0);
 			var stringEmptyRef = new CodeFieldReferenceExpression (new CodeTypeReferenceExpression (stringTypeRef), "Empty");
@@ -686,6 +687,8 @@ namespace Mono.TextTemplating
 			currentIndentField.InitExpression = stringEmptyRef;
 			var currentIndentFieldRef = new CodeFieldReferenceExpression (thisRef, currentIndentField.Name);
 			
+			var endsWithNewlineField = PrivateField (boolTypeRef, "endsWithNewline");
+			
 			var popIndentMeth = new CodeMemberMethod () {
 				Name = "PopIndent",
 				ReturnType = stringTypeRef,
@@ -696,9 +699,7 @@ namespace Mono.TextTemplating
 					CodeBinaryOperatorType.ValueEquality, zeroPrim),
 				new CodeMethodReturnStatement (stringEmptyRef)));
 			popIndentMeth.Statements.Add (new CodeVariableDeclarationStatement (intTypeRef, "lastPos",
-				new CodeBinaryOperatorExpression (
-					new CodePropertyReferenceExpression (currentIndentFieldRef, "Length"),
-					CodeBinaryOperatorType.Subtract,
+				Subtract (new CodePropertyReferenceExpression (currentIndentFieldRef, "Length"),
 					new CodeMethodInvokeExpression (indentsPropRef, "Pop"))));
 			popIndentMeth.Statements.Add (new CodeVariableDeclarationStatement (stringTypeRef, "last",
 				new CodeMethodInvokeExpression (currentIndentFieldRef, "Substring", new CodeVariableReferenceExpression ("lastPos"))));
@@ -726,6 +727,7 @@ namespace Mono.TextTemplating
 			var currentIndentProp = GenerateGetterProperty ("CurrentIndent", currentIndentField);
 			type.Members.Add (currentIndentField);
 			type.Members.Add (indentsField);
+			type.Members.Add (endsWithNewlineField);
 			type.Members.Add (popIndentMeth);
 			type.Members.Add (pushIndentMeth);
 			type.Members.Add (clearIndentMeth);
@@ -739,6 +741,7 @@ namespace Mono.TextTemplating
 			var thisRef = new CodeThisReferenceExpression ();
 			var genEnvPropRef = new CodePropertyReferenceExpression (thisRef, "GenerationEnvironment");
 			var currentIndentFieldRef = new CodeFieldReferenceExpression (thisRef, "currentIndent");
+			var endsWithNewlineFieldRef = new CodeFieldReferenceExpression (thisRef, "endsWithNewline");
 			
 			var textToAppendParam = new CodeParameterDeclarationExpression (stringTypeRef, "textToAppend");
 			var formatParam = new CodeParameterDeclarationExpression (stringTypeRef, "format");
@@ -749,12 +752,8 @@ namespace Mono.TextTemplating
 			var formatParamRef = new CodeArgumentReferenceExpression ("format");
 			var argsParamRef = new CodeArgumentReferenceExpression ("args");
 			
-			var writeMeth = new CodeMemberMethod () {
-				Name = "Write",
-				Attributes = MemberAttributes.Public | MemberAttributes.Final,
-			};
-			writeMeth.Parameters.Add (textToAppendParam);
-			writeMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "Append", new CodeArgumentReferenceExpression ("textToAppend")));
+			var writeMeth = CreateWriteMethod ();
+			var writeMethRef = new CodeMethodReferenceExpression (thisRef, "Write");
 			
 			var writeArgsMeth = new CodeMemberMethod () {
 				Name = "Write",
@@ -762,15 +761,21 @@ namespace Mono.TextTemplating
 			};
 			writeArgsMeth.Parameters.Add (formatParam);
 			writeArgsMeth.Parameters.Add (argsParam);
-			writeArgsMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "AppendFormat", formatParamRef, argsParamRef));
+			
+			var stringFormat = new CodeMethodInvokeExpression (new CodeMethodReferenceExpression (
+				new CodeTypeReferenceExpression (stringTypeRef), "Format"), formatParamRef, argsParamRef);
+			writeArgsMeth.Statements.Add (new CodeMethodInvokeExpression (writeMethRef, stringFormat));
 			
 			var writeLineMeth = new CodeMemberMethod () {
 				Name = "WriteLine",
 				Attributes = MemberAttributes.Public | MemberAttributes.Final,
 			};
 			writeLineMeth.Parameters.Add (textToAppendParam);
-			writeLineMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "Append", currentIndentFieldRef));
-			writeLineMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "AppendLine", textToAppendParamRef));
+			writeLineMeth.Statements.Add (new CodeMethodInvokeExpression (writeMethRef, textToAppendParamRef));
+			writeLineMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "AppendLine"));
+			writeLineMeth.Statements.Add (new CodeAssignStatement (endsWithNewlineFieldRef, new CodePrimitiveExpression (true)));
+			
+			var writeLineMethRef = new CodeMethodReferenceExpression (thisRef, "WriteLine");
 			
 			var writeLineArgsMeth = new CodeMemberMethod () {
 				Name = "WriteLine",
@@ -778,14 +783,110 @@ namespace Mono.TextTemplating
 			};
 			writeLineArgsMeth.Parameters.Add (formatParam);
 			writeLineArgsMeth.Parameters.Add (argsParam);
-			writeLineArgsMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "Append", currentIndentFieldRef));
-			writeLineArgsMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "AppendFormat", formatParamRef, argsParamRef));
-			writeLineArgsMeth.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "AppendLine"));
+			writeLineArgsMeth.Statements.Add (new CodeMethodInvokeExpression (writeLineMethRef, stringFormat));
 			
 			type.Members.Add (writeMeth);
 			type.Members.Add (writeArgsMeth);
 			type.Members.Add (writeLineMeth);
 			type.Members.Add (writeLineArgsMeth);
+		}
+		
+		static CodeMemberMethod CreateWriteMethod()
+		{
+			var stringTypeRef = TypeRef<string> ();
+			var thisRef = new CodeThisReferenceExpression ();
+			var zeroPrim = new CodePrimitiveExpression (0);
+			var onePrim = new CodePrimitiveExpression (1);
+			var lineFeedPrim = new CodePrimitiveExpression('\n');
+			var carriageReturnPrim = new CodePrimitiveExpression('\r');
+			var genEnvPropRef = new CodePropertyReferenceExpression (thisRef, "GenerationEnvironment");
+			var genEnvPropLengthRef = new CodeFieldReferenceExpression (genEnvPropRef, "Length");
+			var genEnvPropAppendMethRef = new CodeMethodReferenceExpression (genEnvPropRef, "Append");
+			var currentIndentPropRef = new CodePropertyReferenceExpression (thisRef, "CurrentIndent");
+			var currentIndentPropLength = new CodeFieldReferenceExpression (currentIndentPropRef, "Length");
+			var endsWithNewlineFieldRef = new CodeFieldReferenceExpression (thisRef, "endsWithNewline");
+			var lastCharVarRef = new CodeVariableReferenceExpression ("last");
+			var lastNewlineVarRef = new CodeVariableReferenceExpression ("lastNewline");
+			
+			var textToAppendParam = new CodeParameterDeclarationExpression (stringTypeRef, "textToAppend");
+			var textToAppendParamRef = new CodeArgumentReferenceExpression ("textToAppend");
+			var textToAppendParamLength = new CodePropertyReferenceExpression (textToAppendParamRef, "Length");
+			var textToAppendParamLastIndex = Subtract (textToAppendParamLength, onePrim);
+			
+			var writeMeth = new CodeMemberMethod () {
+				Name = "Write",
+				Attributes = MemberAttributes.Public | MemberAttributes.Final,
+			};
+			writeMeth.Parameters.Add (textToAppendParam);
+			
+			writeMeth.Statements.Add (IsStringNullOrEmptyCheck (textToAppendParamRef, new CodeMethodReturnStatement ()));
+			
+			var genEnvLengthIsZero = ValuesEqual (genEnvPropLengthRef, zeroPrim);
+			var genEnvLengthIsZeroOrEndsWithNewline = BooleanOr (genEnvLengthIsZero, endsWithNewlineFieldRef);
+			var currentIndentLengthGreaterThanZero = GreaterThan (currentIndentPropLength, zeroPrim);
+			writeMeth.Statements.Add (BooleanAndCheck (
+				genEnvLengthIsZeroOrEndsWithNewline,
+				currentIndentLengthGreaterThanZero,
+				MethodInvokeStatement (genEnvPropAppendMethRef, currentIndentPropRef)));
+			
+			writeMeth.Statements.Add (AssignFalse (endsWithNewlineFieldRef));
+			
+			var lastCharInTextToAppend = new CodeIndexerExpression (textToAppendParamRef, textToAppendParamLastIndex);
+			writeMeth.Statements.Add (CharVariable ("last", lastCharInTextToAppend));
+			
+			var lastIsLineFeedChar = ValuesEqual (lastCharVarRef, lineFeedPrim);
+			var lastIsCarriageReturnChar = ValuesEqual (lastCharVarRef, carriageReturnPrim);
+			writeMeth.Statements.Add (BooleanOrCheck(
+				lastIsLineFeedChar, 
+				lastIsCarriageReturnChar,
+				AssignTrue (endsWithNewlineFieldRef)));
+			
+			writeMeth.Statements.Add (ValuesEqualCheck (
+				currentIndentPropLength,
+				zeroPrim,
+				MethodInvokeStatement (genEnvPropRef, "Append", textToAppendParamRef),
+				new CodeMethodReturnStatement()));
+			
+			writeMeth.Statements.Add (IntVariable ("lastNewline", zeroPrim));
+			
+			var loopIndex = new CodeVariableReferenceExpression ("i");
+			var loopIndexPlusOne = Add (loopIndex, onePrim);
+			var incrementLoopIndex = new CodeAssignStatement (loopIndex, loopIndexPlusOne);
+			var forLoop = new CodeIterationStatement (
+				IntVariable ("i", zeroPrim),
+				LessThan (loopIndex, textToAppendParamLastIndex),
+				incrementLoopIndex);
+			
+			forLoop.Statements.Add (CharVariable ("c", new CodeIndexerExpression (textToAppendParamRef, loopIndex)));
+			var charVarRef = new CodeVariableReferenceExpression ("c");
+			var nextCharIsLineFeed = ValuesEqualCheck (
+				new CodeIndexerExpression (textToAppendParamRef, loopIndexPlusOne),
+				lineFeedPrim,
+				incrementLoopIndex,
+				ValuesEqualCheck (loopIndex, textToAppendParamLastIndex, new CodeGotoStatement ("breakLoop")));
+			var charVarIsCarriageReturn = ValuesEqualCheck (charVarRef, carriageReturnPrim, nextCharIsLineFeed);
+			forLoop.Statements.Add (charVarIsCarriageReturn);
+			charVarIsCarriageReturn.FalseStatements.Add (NotEqualCheck (charVarRef, lineFeedPrim, new CodeGotoStatement("continueLoop")));
+			forLoop.Statements.Add (incrementLoopIndex);
+			forLoop.Statements.Add (IntVariable ("len", Subtract (loopIndex, lastNewlineVarRef)));
+			forLoop.Statements.Add (GreaterThanCheck (
+				new CodeVariableReferenceExpression ("len"),
+				zeroPrim,
+				new CodeMethodInvokeExpression (genEnvPropAppendMethRef, textToAppendParamRef, lastNewlineVarRef, Subtract (loopIndex, lastNewlineVarRef))));
+			forLoop.Statements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "Append", currentIndentPropRef));
+			forLoop.Statements.Add (new CodeAssignStatement (lastNewlineVarRef, loopIndex));
+			forLoop.Statements.Add (new CodeLabeledStatement ("continueLoop"));
+			forLoop.Statements.Add (new CodeExpressionStatement (new CodeSnippetExpression("")));
+			writeMeth.Statements.Add (forLoop);
+			
+			writeMeth.Statements.Add (new CodeLabeledStatement ("breakLoop"));
+		
+			var lastNewlineGreaterThanZero = GreaterThanCheck (lastNewlineVarRef, zeroPrim, new CodeMethodInvokeExpression (
+				genEnvPropRef, "Append", textToAppendParamRef, lastNewlineVarRef, Subtract (textToAppendParamLength, lastNewlineVarRef)));
+			lastNewlineGreaterThanZero.FalseStatements.Add (new CodeMethodInvokeExpression (genEnvPropRef, "Append", textToAppendParamRef));
+			writeMeth.Statements.Add (lastNewlineGreaterThanZero);
+			
+			return writeMeth;
 		}
 		
 		static void AddToStringHelper (CodeTypeDeclaration type, TemplateSettings settings)
@@ -941,6 +1042,113 @@ namespace Mono.TextTemplating
 		static CodeBinaryOperatorExpression BooleanAnd (CodeExpression expr1, CodeExpression expr2)
 		{
 			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.BooleanAnd, expr2);
+		}
+		
+		static CodeConditionStatement BooleanAndCheck (CodeExpression expr1, CodeExpression expr2, params CodeStatement[] trueStatements)
+		{
+			return new CodeConditionStatement (BooleanAnd (expr1, expr2), trueStatements);
+		}
+		
+		static CodeBinaryOperatorExpression BooleanOr (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.BooleanOr, expr2);
+		}
+		
+		static CodeConditionStatement BooleanOrCheck (CodeExpression expr1, CodeExpression expr2, params CodeStatement[] trueStatements)
+		{
+			return new CodeConditionStatement (BooleanOr (expr1, expr2), trueStatements);
+		}
+		
+		static CodeBinaryOperatorExpression ValuesEqual (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.ValueEquality, expr2);
+		}
+		
+		static CodeConditionStatement ValuesEqualCheck (CodeExpression expr1, CodeExpression expr2, params CodeStatement[] trueStatements)
+		{
+			return new CodeConditionStatement (ValuesEqual (expr1, expr2), trueStatements);
+		}
+		
+		static CodeBinaryOperatorExpression Subtract (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.Subtract, expr2);
+		}
+		
+		static CodeBinaryOperatorExpression Add (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.Add, expr2);
+		}
+		
+		static CodeBinaryOperatorExpression NotEqual (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.IdentityInequality, expr2);
+		}
+		
+		static CodeConditionStatement NotEqualCheck (CodeExpression expr1, CodeExpression expr2, CodeStatement trueStatement)
+		{
+			return new CodeConditionStatement (NotEqual (expr1, expr2), trueStatement);
+		}
+		
+		static CodeBinaryOperatorExpression GreaterThan (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.GreaterThan, expr2);
+		}
+		
+		static CodeConditionStatement GreaterThanCheck (CodeExpression expr1, CodeExpression expr2, CodeExpression trueExpr)
+		{
+			return GreaterThanCheck (expr1, expr2, new CodeExpressionStatement (trueExpr));
+		}
+		
+		static CodeConditionStatement GreaterThanCheck (CodeExpression expr1, CodeExpression expr2, CodeStatement trueStatement)
+		{
+			return new CodeConditionStatement (GreaterThan (expr1, expr2), trueStatement);
+		}
+		
+		static CodeBinaryOperatorExpression LessThan (CodeExpression expr1, CodeExpression expr2)
+		{
+			return new CodeBinaryOperatorExpression (expr1, CodeBinaryOperatorType.LessThan, expr2);
+		}
+		
+		static CodeVariableDeclarationStatement IntVariable (string name, CodeExpression initExpression)
+		{
+			return new CodeVariableDeclarationStatement (TypeRef<int> (), name, initExpression);
+		}
+		
+		static CodeVariableDeclarationStatement CharVariable (string name, CodeExpression initExpression)
+		{
+			return new CodeVariableDeclarationStatement (TypeRef<char> (), name, initExpression);
+		}
+		
+		static CodeExpressionStatement MethodInvokeStatement (CodeExpression targetObject, string name, params CodeExpression[] parameters)
+		{
+			return new CodeExpressionStatement (new CodeMethodInvokeExpression (targetObject, name, parameters));
+		}
+		
+		static CodeExpressionStatement MethodInvokeStatement (CodeMethodReferenceExpression method, params CodeExpression[] parameters)
+		{
+			return new CodeExpressionStatement(new CodeMethodInvokeExpression (method, parameters));
+		}
+		
+		static CodeMethodInvokeExpression IsStringNullOrEmpty (CodeExpression parameter)
+		{
+			 return new CodeMethodInvokeExpression (
+				new CodeMethodReferenceExpression (new CodeTypeReferenceExpression (TypeRef<string> ()), "IsNullOrEmpty"),
+				parameter);
+		}
+		
+		static CodeConditionStatement IsStringNullOrEmptyCheck (CodeExpression parameter, params CodeStatement[] trueStatements)
+		{
+			return new CodeConditionStatement (IsStringNullOrEmpty (parameter), trueStatements);
+		}
+		
+		static CodeAssignStatement AssignFalse (CodeExpression left)
+		{
+			return new CodeAssignStatement (left, new CodePrimitiveExpression (false));
+		}
+		
+		static CodeAssignStatement AssignTrue (CodeExpression left)
+		{
+			return new CodeAssignStatement (left, new CodePrimitiveExpression (true));
 		}
 		
 		static CodeStatement ArgNullCheck (CodeExpression value, params CodeExpression[] argNullExcArgs)
