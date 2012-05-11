@@ -84,6 +84,8 @@ namespace Mono.TextTemplating
 			settings.IsPreprocessed = true;
 			language = settings.Language;
 			
+			SetHostFileExtension (host, settings.Extension);
+			
 			var ccu = GenerateCompileUnit (host, content, pt, settings);
 			references = ProcessReferences (host, pt, settings).ToArray ();
 			
@@ -97,6 +99,13 @@ namespace Mono.TextTemplating
 				settings.Provider.GenerateCodeFromCompileUnit (ccu, sw, options);
 				return sw.ToString ();
 			};
+		}
+		
+		void SetHostFileExtension (ITextTemplatingEngineHost host, string extension)
+		{
+			if (!string.IsNullOrEmpty (extension)) {
+				host.SetFileExtension (extension);
+			}
 		}
 
 		public CompiledTemplate CompileTemplate (string content, ITextTemplatingEngineHost host)
@@ -118,9 +127,8 @@ namespace Mono.TextTemplating
 				return null;
 			}
 			
-			if (!string.IsNullOrEmpty (settings.Extension)) {
-				host.SetFileExtension (settings.Extension);
-			}
+			SetHostFileExtension (host, settings.Extension);
+			
 			if (settings.Encoding != null) {
 				//FIXME: when is this called with false?
 				host.SetOutputEncoding (settings.Encoding, true);

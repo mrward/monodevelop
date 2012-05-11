@@ -61,6 +61,34 @@ namespace Mono.TextTemplating.Tests
 			Assert.AreEqual (expectedOutput, output, output);
 		}
 		
+		[Test]
+		public void Preprocess_OutputDirectiveForFileExtension_SetFileExtensionCalledOnHost ()
+		{
+			string input = 
+				"<#@ template language=\"C#\" #>\r\n" +
+				"<#@ Output Extension=\".outputDirectiveExtension\" #>\r\n" +
+				"Test\r\n";
+			
+			DummyHost host = new DummyHost ();
+			Preprocess (input, host);
+			
+			Assert.AreEqual (".outputDirectiveExtension", host.FileExtension);
+		}
+		
+		[Test]
+		public void Preprocess_NoOutputDirectiveForFileExtension_SetFileExtensionNotCalledOnHost ()
+		{
+			string input = 
+				"<#@ template language=\"C#\" #>\r\n" +
+				"Test\r\n";
+			
+			DummyHost host = new DummyHost ();
+			host.FileExtension = ".test";
+			Preprocess (input, host);
+			
+			Assert.AreEqual (".test", host.FileExtension);
+		}
+		
 		#region Helpers
 		
 		string Preprocess (string input)

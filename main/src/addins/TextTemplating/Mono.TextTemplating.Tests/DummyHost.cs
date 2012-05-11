@@ -88,9 +88,11 @@ namespace Mono.TextTemplating.Tests
 			throw new System.NotImplementedException();
 		}
 		
+		public string FileExtension;
+		
 		public virtual void SetFileExtension (string extension)
 		{
-			throw new System.NotImplementedException();
+			FileExtension = extension;
 		}
 		
 		public virtual void SetOutputEncoding (System.Text.Encoding encoding, bool fromOutputDirective)
