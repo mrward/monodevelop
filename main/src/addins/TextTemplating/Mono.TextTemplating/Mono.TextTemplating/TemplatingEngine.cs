@@ -104,8 +104,16 @@ namespace Mono.TextTemplating
 		void SetHostFileExtension (ITextTemplatingEngineHost host, string extension)
 		{
 			if (!string.IsNullOrEmpty (extension)) {
-				host.SetFileExtension (extension);
+				host.SetFileExtension (PrefixFileExtensionWithDotIfMissing (extension));
 			}
+		}
+		
+		string PrefixFileExtensionWithDotIfMissing (string extension)
+		{
+			if (extension.StartsWith (".")) {
+				return extension;
+			}
+			return "." + extension;
 		}
 
 		public CompiledTemplate CompileTemplate (string content, ITextTemplatingEngineHost host)

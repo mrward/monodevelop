@@ -89,6 +89,20 @@ namespace Mono.TextTemplating.Tests
 			Assert.AreEqual (".test", host.FileExtension);
 		}
 		
+		[Test]
+		public void Preprocess_OutputDirectiveForFileExtensionMissingDot_SetFileExtensionCalledOnHostWithDotBeforeExtension ()
+		{
+			string input = 
+				"<#@ template language=\"C#\" #>\r\n" +
+				"<#@ Output Extension=\"outputDirectiveExtension\" #>\r\n" +
+				"Test\r\n";
+			
+			DummyHost host = new DummyHost ();
+			Preprocess (input, host);
+			
+			Assert.AreEqual (".outputDirectiveExtension", host.FileExtension);
+		}
+		
 		#region Helpers
 		
 		string Preprocess (string input)
