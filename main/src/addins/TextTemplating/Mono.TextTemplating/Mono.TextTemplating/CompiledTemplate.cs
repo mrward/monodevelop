@@ -93,13 +93,23 @@ namespace Mono.TextTemplating
 		
 		System.Reflection.Assembly ResolveReferencedAssemblies (object sender, ResolveEventArgs args)
 		{
+			string assemblyShortName = GetAssemblyShortName (args.Name);
 			System.Reflection.Assembly asm = null;
 			foreach (var asmFile in assemblyFiles) {
-				var name = System.IO.Path.GetFileNameWithoutExtension (asmFile);
-				if (args.Name.StartsWith (name))
+				string name = System.IO.Path.GetFileNameWithoutExtension (asmFile);
+				if (assemblyShortName == name)
 					asm = System.Reflection.Assembly.LoadFrom (asmFile);
 			}
 			return asm;
+		}
+		
+		string GetAssemblyShortName (string name)
+		{
+			int index = name.IndexOf (',');
+			if (index >= 0) {
+				return name.Substring (0, index);
+			}
+			return name;
 		}
 		
 		public void Dispose ()
