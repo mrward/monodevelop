@@ -55,12 +55,12 @@ namespace Microsoft.VisualStudio.TextTemplating
 		
 		public void Error (string message)
 		{
-			Errors.Add (new CompilerError (null, -1, -1, null, message));
+			Errors.Add (new CompilerError ("", -1, -1, null, message));
 		}
 		
 		public void Warning (string message)
 		{
-			var err = new CompilerError (null, -1, -1, null, message) {
+			var err = new CompilerError ("", -1, -1, null, message) {
 				IsWarning = true,
 			};
 			Errors.Add (err);
