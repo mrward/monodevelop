@@ -4,4 +4,26 @@
 		<ExecutionHandler id="DotNetCore" class="MonoDevelop.DotNetCore.DotNetCoreExecutionHandler" />
 	</Extension>
 
+	<Extension path="/MonoDevelop/Ide/ProjectTemplateCategories/other">
+		<Category id="netcore" name=".NET Core" insertafter="net" insertbefore="aspnet">
+			<Category id="general" name="General" />
+		</Category>
+	</Extension>
+
+	<Extension path="/MonoDevelop/Ide/ProjectTemplates">
+		<ProjectTemplate
+			id="DotNetCoreConsoleProject"
+			file="Templates/Projects/Console/ConsoleProject.xpt.xml" />
+		<!--<ProjectTemplate
+			id="DotNetCoreLibraryProject"
+			file="Templates/Projects/Library/LibraryProject.xpt.xml" />
+		<ProjectTemplate
+			id="DotNetCoreEmptyWebProject"
+			file="Templates/Projects/EmptyWeb/EmptyWebProject.xpt.xml" />-->
+	</Extension>
+
+	<Extension path="/MonoDevelop/Ide/ProjectTemplateWizards">
+		<Class id="MonoDevelop.DotNetCore.ProjectTemplateWizard" class="MonoDevelop.DotNetCore.Templating.DotNetCoreProjectTemplateWizard" />
+	</Extension>
+
 </ExtensionModel>
