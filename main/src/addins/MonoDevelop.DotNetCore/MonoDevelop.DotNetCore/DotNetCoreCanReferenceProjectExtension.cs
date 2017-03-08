@@ -34,7 +34,7 @@ namespace MonoDevelop.DotNetCore
 	[ExportProjectModelExtension]
 	class DotNetCoreCanReferenceProjectExtension : DotNetProjectExtension
 	{
-		protected override bool OnGetCanReferenceProject (DotNetProject targetProject, out string reason)
+		internal protected override bool OnGetCanReferenceProject (DotNetProject targetProject, out string reason)
 		{
 			if (base.OnGetCanReferenceProject (targetProject, out reason))
 				return true;

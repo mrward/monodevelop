@@ -52,18 +52,18 @@ namespace MonoDevelop.DotNetCore
 			DotNetCoreProjectReloadMonitor.Initialize ();
 		}
 
-		protected override bool SupportsObject (WorkspaceObject item)
+		internal protected override bool SupportsObject (WorkspaceObject item)
 		{
 			return base.SupportsObject (item) && IsDotNetCoreProject ((DotNetProject)item);
 		}
 
-		protected override void Initialize ()
+		internal protected override void Initialize ()
 		{
 			RequiresMicrosoftBuild = true;
 			base.Initialize ();
 		}
 
-		protected override bool OnGetSupportsFramework (TargetFramework framework)
+		internal protected override bool OnGetSupportsFramework (TargetFramework framework)
 		{
 			if (framework.IsNetCoreApp () ||
 				framework.IsNetStandard ())
@@ -78,7 +78,7 @@ namespace MonoDevelop.DotNetCore
 				properties.HasProperty ("TargetFrameworks");
 		}
 
-		protected override bool OnGetCanReferenceProject (DotNetProject targetProject, out string reason)
+		internal protected override bool OnGetCanReferenceProject (DotNetProject targetProject, out string reason)
 		{
 			if (base.OnGetCanReferenceProject (targetProject, out reason))
 				return true;
@@ -97,13 +97,13 @@ namespace MonoDevelop.DotNetCore
 			return DotNetCoreFrameworkCompatibility.CanReferenceNetStandardProject (Project.TargetFramework.Id, targetProject);
 		}
 
-		protected override void OnReadProjectHeader (ProgressMonitor monitor, MSBuildProject msproject)
+		internal protected override void OnReadProjectHeader (ProgressMonitor monitor, MSBuildProject msproject)
 		{
 			dotNetCoreMSBuildProject.ReadProjectHeader (msproject);
 			base.OnReadProjectHeader (monitor, msproject);
 		}
 
-		protected override void OnReadProject (ProgressMonitor monitor, MSBuildProject msproject)
+		internal protected override void OnReadProject (ProgressMonitor monitor, MSBuildProject msproject)
 		{
 			dotNetCoreMSBuildProject.AddKnownItemAttributes (Project.MSBuildProject);
 
@@ -117,14 +117,14 @@ namespace MonoDevelop.DotNetCore
 			Project.UseAdvancedGlobSupport = true;
 		}
 
-		protected override void OnWriteProject (ProgressMonitor monitor, MSBuildProject msproject)
+		internal protected override void OnWriteProject (ProgressMonitor monitor, MSBuildProject msproject)
 		{
 			base.OnWriteProject (monitor, msproject);
 
 			dotNetCoreMSBuildProject.WriteProject (msproject, Project.TargetFramework.Id);
 		}
 
-		protected override ExecutionCommand OnCreateExecutionCommand (ConfigurationSelector configSel, DotNetProjectConfiguration configuration, ProjectRunConfiguration runConfiguration)
+		internal protected override ExecutionCommand OnCreateExecutionCommand (ConfigurationSelector configSel, DotNetProjectConfiguration configuration, ProjectRunConfiguration runConfiguration)
 		{
 			return CreateDotNetCoreExecutionCommand (configSel, configuration, runConfiguration);
 		}
@@ -162,7 +162,7 @@ namespace MonoDevelop.DotNetCore
 			return Project.BaseDirectory.Combine (outputDirectory.ToString (), targetFramework);
 		}
 
-		protected override FilePath OnGetOutputFileName (ConfigurationSelector configuration)
+		internal protected override FilePath OnGetOutputFileName (ConfigurationSelector configuration)
 		{
 			var dotNetConfiguration = configuration.GetConfiguration (Project) as DotNetProjectConfiguration;
 			if (dotNetConfiguration != null)
@@ -178,7 +178,7 @@ namespace MonoDevelop.DotNetCore
 			return outputDirectory.Combine (configuration.OutputAssembly + ".dll");
 		}
 
-		protected override Task OnExecute (ProgressMonitor monitor, ExecutionContext context, ConfigurationSelector configuration, SolutionItemRunConfiguration runConfiguration)
+		internal protected override Task OnExecute (ProgressMonitor monitor, ExecutionContext context, ConfigurationSelector configuration, SolutionItemRunConfiguration runConfiguration)
 		{
 			if (!IdeApp.Preferences.BuildBeforeExecuting && !IsDotNetCoreInstalled ()) {
 				return ShowCannotExecuteDotNetCoreApplicationDialog ();
@@ -224,7 +224,7 @@ namespace MonoDevelop.DotNetCore
 			return Project.ParentSolution.ExtendedProperties.Contains (ShownDotNetCoreSdkInstalledExtendedPropertyName);
 		}
 
-		protected override async Task OnExecuteCommand (ProgressMonitor monitor, ExecutionContext context, ConfigurationSelector configuration, ExecutionCommand executionCommand)
+		internal protected override async Task OnExecuteCommand (ProgressMonitor monitor, ExecutionContext context, ConfigurationSelector configuration, ExecutionCommand executionCommand)
 		{
 			bool externalConsole = false;
 			bool pauseConsole = false;
@@ -251,7 +251,7 @@ namespace MonoDevelop.DotNetCore
 		/// <summary>
 		/// Cannot use SolutionItemExtension.OnModified. It does not seem to be called.
 		/// </summary>
-		protected void OnProjectModified (object sender, SolutionItemModifiedEventArgs args)
+		internal protected void OnProjectModified (object sender, SolutionItemModifiedEventArgs args)
 		{
 			if (Project.Loading)
 				return;
@@ -281,7 +281,7 @@ namespace MonoDevelop.DotNetCore
 			base.Dispose ();
 		}
 
-		protected override Task<BuildResult> OnClean (ProgressMonitor monitor, ConfigurationSelector configuration, OperationContext operationContext)
+		internal protected override Task<BuildResult> OnClean (ProgressMonitor monitor, ConfigurationSelector configuration, OperationContext operationContext)
 		{
 			BuildResult result = CheckCanRunCleanOrBuild ();
 			if (result != null) {
@@ -290,7 +290,7 @@ namespace MonoDevelop.DotNetCore
 			return base.OnClean (monitor, configuration, operationContext);
 		}
 
-		protected override Task<BuildResult> OnBuild (ProgressMonitor monitor, ConfigurationSelector configuration, OperationContext operationContext)
+		internal protected override Task<BuildResult> OnBuild (ProgressMonitor monitor, ConfigurationSelector configuration, OperationContext operationContext)
 		{
 			BuildResult result = CheckCanRunCleanOrBuild ();
 			if (result != null) {
@@ -359,7 +359,7 @@ namespace MonoDevelop.DotNetCore
 			get { return (dotNetCoreMSBuildProject.Sdk?.IndexOf ("Microsoft.NET.Sdk.Web", System.StringComparison.OrdinalIgnoreCase) ?? -1) != -1; }
 		}
 
-		protected override void OnPrepareForEvaluation (MSBuildProject project)
+		internal protected override void OnPrepareForEvaluation (MSBuildProject project)
 		{
 			base.OnPrepareForEvaluation (project);
 
@@ -385,7 +385,7 @@ namespace MonoDevelop.DotNetCore
 		/// and then later on after a re-evaluation of the project is filtered out from the
 		/// source files returned by Project.OnGetSourceFiles.
 		/// </summary>
-		protected override async Task<ProjectFile[]> OnGetSourceFiles (ProgressMonitor monitor, ConfigurationSelector configuration)
+		internal protected override async Task<ProjectFile[]> OnGetSourceFiles (ProgressMonitor monitor, ConfigurationSelector configuration)
 		{
 			var sourceFiles = await base.OnGetSourceFiles (monitor, configuration);
 
@@ -426,7 +426,7 @@ namespace MonoDevelop.DotNetCore
 			return filteredFiles.ToArray ();
 		}
 
-		protected override void OnSetFormat (MSBuildFileFormat format)
+		internal protected override void OnSetFormat (MSBuildFileFormat format)
 		{
 			// Do not call base class since the solution's FileFormat will be used which is
 			// VS 2012 and this will set the ToolsVersion to "4.0" which we are preventing.
@@ -436,7 +436,7 @@ namespace MonoDevelop.DotNetCore
 			// project file is being saved.
 		}
 
-		protected override void OnReferenceAddedToProject (ProjectReferenceEventArgs e)
+		internal protected override void OnReferenceAddedToProject (ProjectReferenceEventArgs e)
 		{
 			base.OnReferenceAddedToProject (e);
 
@@ -444,7 +444,7 @@ namespace MonoDevelop.DotNetCore
 				RestoreNuGetPackages ();
 		}
 
-		protected override void OnReferenceRemovedFromProject (ProjectReferenceEventArgs e)
+		internal protected override void OnReferenceRemovedFromProject (ProjectReferenceEventArgs e)
 		{
 			base.OnReferenceRemovedFromProject (e);
 
@@ -479,7 +479,7 @@ namespace MonoDevelop.DotNetCore
 		// _DotNetHostExecutableDirectory cannot be overridden so as a workaround for
 		// F# projects the MSBuildExtensionsPath is redefined to point to the .NET Core
 		// SDK folder.
-		protected override Task<TargetEvaluationResult> OnRunTarget (ProgressMonitor monitor, string target, ConfigurationSelector configuration, TargetEvaluationContext context)
+		internal protected override Task<TargetEvaluationResult> OnRunTarget (ProgressMonitor monitor, string target, ConfigurationSelector configuration, TargetEvaluationContext context)
 		{
 			if (target == ProjectService.BuildTarget) {
 				if (IsFSharpSdkProject ()) {
@@ -512,7 +512,7 @@ namespace MonoDevelop.DotNetCore
 		/// a solution is being opened so check that project's parent solution is open in
 		/// the IDE.
 		/// </summary>
-		protected override void OnBoundToSolution ()
+		internal protected override void OnBoundToSolution ()
 		{
 			base.OnBoundToSolution ();
 
@@ -528,7 +528,7 @@ namespace MonoDevelop.DotNetCore
 
 		internal bool RestoreAfterSave { get; set; }
 
-		protected override Task OnSave (ProgressMonitor monitor)
+		internal protected override Task OnSave (ProgressMonitor monitor)
 		{
 			if (RestoreAfterSave) {
 				RestoreAfterSave = false;
@@ -562,12 +562,12 @@ namespace MonoDevelop.DotNetCore
 			});
 		}
 
-		protected override bool OnGetSupportsImportedItem (IMSBuildItemEvaluated buildItem)
+		internal protected override bool OnGetSupportsImportedItem (IMSBuildItemEvaluated buildItem)
 		{
 			return BuildAction.DotNetActions.Contains (buildItem.Name);
 		}
 
-		protected override ProjectRunConfiguration OnCreateRunConfiguration (string name)
+		internal protected override ProjectRunConfiguration OnCreateRunConfiguration (string name)
 		{
 			return new DotNetCoreRunConfiguration (name);
 		}

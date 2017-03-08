@@ -40,7 +40,7 @@ namespace MonoDevelop.DotNetCore
 		{
 		}
 
-		protected override void Initialize (Project project)
+		internal protected override void Initialize (Project project)
 		{
 			base.Initialize (project);
 			if (project.GetFlavor<DotNetCoreProjectExtension> ()?.IsWeb ?? false && string.IsNullOrEmpty (ApplicationURL)) {
