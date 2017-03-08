@@ -506,6 +506,14 @@ namespace MonoDevelop.DotNetCore
 			return supportedTargetFrameworks.GetFrameworks ();
 		}
 
+		internal IEnumerable<string> GetTargetFrameworks ()
+		{
+			if (HasSdk)
+				return dotNetCoreMSBuildProject.TargetFrameworks;
+
+			return new [] { Project.TargetFramework.ToString () };
+		}
+
 		/// <summary>
 		/// Handle a new project being created and added to a new solution. In this case
 		/// the NuGet packages should be restored. Need to avoid running a restore when

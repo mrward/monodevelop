@@ -90,7 +90,20 @@ namespace MonoDevelop.DotNetCore.NodeBuilders
 		Task<IEnumerable<PackageDependency>> GetPackageDependenciesAsync (CancellationTokenSource tokenSource)
 		{
 			var configurationSelector = IdeApp.Workspace?.ActiveConfiguration ?? ConfigurationSelector.Default;
-			return Task.Run (() => Project.GetPackageDependencies (configurationSelector, tokenSource.Token));
+			Dictionary<string, string> globalProperties = GetGlobalProperties (Project);
+			return Task.Run (() => Project.GetPackageDependencies (configurationSelector, globalProperties, tokenSource.Token));
+		}
+
+		Dictionary<string, string> GetGlobalProperties (DotNetProject project)
+		{
+			var dotNetCoreProject = project.GetFlavor<DotNetCoreProjectExtension> ();
+			var targetFrameworks = dotNetCoreProject.GetTargetFrameworks ();
+			if (targetFrameworks.Count () > 1) {
+				var properties = new Dictionary<string, string> ();
+				properties.Add ("TargetFramework", targetFrameworks.First ());
+				return properties;
+			}
+			return null;
 		}
 
 		void OnPackageDependenciesRead (Task<IEnumerable<PackageDependency>> task, CancellationTokenSource tokenSource)
