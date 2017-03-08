@@ -50,6 +50,10 @@ namespace MonoDevelop.DotNetCore
 			get { return targetFrameworks; }
 		}
 
+		public bool HasMultipleTargetFrameworks {
+			get { return targetFrameworks.Count > 1; }
+		}
+
 		public bool HasSdk {
 			get { return Sdk != null; }
 		}

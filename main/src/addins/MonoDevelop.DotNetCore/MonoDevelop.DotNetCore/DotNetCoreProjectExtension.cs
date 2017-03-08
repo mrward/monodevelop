@@ -579,5 +579,35 @@ namespace MonoDevelop.DotNetCore
 		{
 			return new DotNetCoreRunConfiguration (name);
 		}
+
+		internal protected override Task<List<AssemblyReference>> OnGetReferencedAssemblies (ConfigurationSelector configuration)
+		{
+			if (HasSdk && dotNetCoreMSBuildProject.HasMultipleTargetFrameworks) {
+				string targetFramework = dotNetCoreMSBuildProject.TargetFrameworks.First ();
+				return GetReferencedAssemblies (configuration, targetFramework);
+			}
+			return base.OnGetReferencedAssemblies (configuration);
+		}
+
+		async Task<List<AssemblyReference>> GetReferencedAssemblies (ConfigurationSelector configuration, string targetFramework)
+		{
+			var result = new List<AssemblyReference> ();
+			RemoteProjectBuilder builder = await Project.GetProjectBuilder ();
+			try {
+				var configs = Project.GetConfigurations (configuration, false);
+
+				var globalProperties = new Dictionary<string ,string> ();
+				globalProperties ["TargetFramework"] = targetFramework;
+
+				AssemblyReference [] refs;
+				using (Projects.Counters.ResolveMSBuildReferencesTimer.BeginTiming (Project.GetProjectEventMetadata (configuration)))
+					refs = await builder.ResolveAssemblyReferences (configs, globalProperties, System.Threading.CancellationToken.None);
+				foreach (var r in refs)
+					result.Add (r);
+			} finally {
+				builder.ReleaseReference ();
+			}
+			return result;
+		}
 	}
 }
