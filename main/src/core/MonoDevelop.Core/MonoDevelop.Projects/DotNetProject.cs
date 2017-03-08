@@ -975,14 +975,20 @@ namespace MonoDevelop.Projects
 			return result;
 		}
 
-		public Task<IEnumerable<PackageDependency>> GetPackageDependencies (ConfigurationSelector configuration, CancellationToken cancellationToken)
+		public Task<IEnumerable<PackageDependency>> GetPackageDependencies (
+			ConfigurationSelector configuration,
+			Dictionary<string, string> globalProperties,
+			CancellationToken cancellationToken)
 		{
 			return BindTask<IEnumerable<PackageDependency>> (async ct => {
-				return await OnGetPackageDependencies (configuration, cancellationToken);
+				return await OnGetPackageDependencies (configuration, globalProperties, cancellationToken);
 			});
 		}
 
-		internal protected virtual async Task<List<PackageDependency>> OnGetPackageDependencies (ConfigurationSelector configuration, CancellationToken cancellationToken)
+		internal protected virtual async Task<List<PackageDependency>> OnGetPackageDependencies (
+			ConfigurationSelector configuration,
+			Dictionary<string, string> globalProperties,
+			CancellationToken cancellationToken)
 		{
 			var result = new List<PackageDependency> ();
 			if (CheckUseMSBuildEngine (configuration)) {
@@ -993,7 +999,7 @@ namespace MonoDevelop.Projects
 
 					PackageDependency [] dependencies;
 					using (Counters.ResolveMSBuildReferencesTimer.BeginTiming (GetProjectEventMetadata (configuration)))
-						dependencies = await builder.ResolvePackageDependencies (configs, cancellationToken);
+						dependencies = await builder.ResolvePackageDependencies (configs, globalProperties, cancellationToken);
 					foreach (var d in dependencies)
 						result.Add (d);
 				} finally {

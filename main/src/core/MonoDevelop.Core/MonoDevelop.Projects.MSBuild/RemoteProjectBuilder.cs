@@ -383,7 +383,10 @@ namespace MonoDevelop.Projects.MSBuild
 			return refs;
 		}
 
-		public async Task<PackageDependency[]> ResolvePackageDependencies (ProjectConfigurationInfo[] configurations, CancellationToken cancellationToken)
+		public async Task<PackageDependency[]> ResolvePackageDependencies (
+			ProjectConfigurationInfo[] configurations,
+			Dictionary<string, string> globalProperties,
+			CancellationToken cancellationToken)
 		{
 			PackageDependency[] packageDependencies = null;
 			var id = configurations [0].Configuration + "|" + configurations [0].Platform;
@@ -402,7 +405,7 @@ namespace MonoDevelop.Projects.MSBuild
 					BeginOperation ();
 					result = await builder.Run (
 						configurations, -1, MSBuildEvent.None, MSBuildVerbosity.Quiet,
-						new [] { "ResolvePackageDependenciesDesignTime" }, new [] { "_DependenciesDesignTime" }, null, null, taskId
+						new [] { "ResolvePackageDependenciesDesignTime" }, new [] { "_DependenciesDesignTime" }, null, globalProperties, taskId
 					);
 				} catch (Exception ex) {
 					await CheckDisconnected ();
