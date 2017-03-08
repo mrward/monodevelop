@@ -341,7 +341,15 @@ namespace MonoDevelop.Projects.MSBuild
 			}
 		}
 
-		public async Task<AssemblyReference[]> ResolveAssemblyReferences (ProjectConfigurationInfo[] configurations, CancellationToken cancellationToken)
+		public Task<AssemblyReference[]> ResolveAssemblyReferences (ProjectConfigurationInfo[] configurations, CancellationToken cancellationToken)
+		{
+			return ResolveAssemblyReferences (configurations, null, cancellationToken);
+		}
+
+		public async Task<AssemblyReference[]> ResolveAssemblyReferences (
+			ProjectConfigurationInfo[] configurations,
+			Dictionary<string, string> globalProperties,
+			CancellationToken cancellationToken)
 		{
 			AssemblyReference[] refs = null;
 			var id = configurations [0].Configuration + "|" + configurations [0].Platform;
@@ -360,7 +368,7 @@ namespace MonoDevelop.Projects.MSBuild
 					BeginOperation ();
 					result = await builder.Run (
 								configurations, -1, MSBuildEvent.None, MSBuildVerbosity.Quiet,
-								new [] { "ResolveAssemblyReferences" }, new [] { "ReferencePath" }, null, null, taskId
+								new [] { "ResolveAssemblyReferences" }, new [] { "ReferencePath" }, null, globalProperties, taskId
 						).ConfigureAwait (false);
 				} catch (Exception ex) {
 					await CheckDisconnected ().ConfigureAwait (false);
