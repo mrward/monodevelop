@@ -254,17 +254,6 @@ namespace MonoDevelop.PackageManagement
 				out ignore);
 		}
 
-		public override Task<bool> ExecuteInitScriptAsync (
-			PackageIdentity identity,
-			string packageInstallPath,
-			INuGetProjectContext projectContext,
-			bool throwOnFailure)
-		{
-			// Not supported. This gets called for every NuGet package
-			// even if they do not have an init.ps1 so do not report this.
-			return Task.FromResult (false);
-		}
-
 		public override Task PostProcessAsync (INuGetProjectContext nuGetProjectContext, CancellationToken token)
 		{
 			Runtime.RunInMainThread (() => {
