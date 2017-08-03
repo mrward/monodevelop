@@ -91,5 +91,55 @@ namespace MonoDevelop.DotNetCore.Tests
 			Assert.AreEqual (0, packageReferenceElement.ChildNodes.Count);
 			Assert.IsTrue (packageReferenceElement.IsEmpty);
 		}
+
+		[Test]
+		public async Task CanReferenceProject_NetCoreAndNetStandardReferenceTests ()
+		{
+			string solutionFileName = Util.GetSampleProject ("DotNetCoreCanReference", "DotNetCoreCanReference.sln");
+			var solution = (Solution) await Services.ProjectService.ReadWorkspaceItem (Util.GetMonitor (), solutionFileName);
+
+			var netcore10 = solution.FindProjectByName ("NetCore10") as DotNetProject;
+			var netcore11 = solution.FindProjectByName ("NetCore11") as DotNetProject;
+			var netcore20 = solution.FindProjectByName ("NetCore20") as DotNetProject;
+
+			var netstandard10 = solution.FindProjectByName ("NetStandard10") as DotNetProject;
+			var netstandard16 = solution.FindProjectByName ("NetStandard16") as DotNetProject;
+			var netstandard17 = solution.FindProjectByName ("NetStandard17") as DotNetProject;
+			var netstandard20 = solution.FindProjectByName ("NetStandard20") as DotNetProject;
+
+			string reason = null;
+
+			// .NETCoreApp 1.0 supports up to .NETStandard 1.6
+			Assert.IsTrue (netcore10.CanReferenceProject (netstandard10, out reason));
+			Assert.IsTrue (netcore10.CanReferenceProject (netstandard16, out reason));
+			Assert.IsFalse (netcore10.CanReferenceProject (netstandard17, out reason));
+			Assert.IsFalse (netcore10.CanReferenceProject (netstandard20, out reason));
+
+			// .NETCoreApp 1.1 supports up to .NETStandard 1.7
+			Assert.IsTrue (netcore11.CanReferenceProject (netstandard10, out reason));
+			Assert.IsTrue (netcore11.CanReferenceProject (netstandard16, out reason));
+			Assert.IsTrue (netcore11.CanReferenceProject (netstandard17, out reason));
+			Assert.IsFalse (netcore11.CanReferenceProject (netstandard20, out reason));
+
+			// .NETCoreApp 2.0 supports up to .NETStandard 2.0
+			Assert.IsTrue (netcore20.CanReferenceProject (netstandard10, out reason));
+			Assert.IsTrue (netcore20.CanReferenceProject (netstandard16, out reason));
+			Assert.IsTrue (netcore20.CanReferenceProject (netstandard17, out reason));
+			Assert.IsTrue (netcore20.CanReferenceProject (netstandard20, out reason));
+
+			// .NET Standard referencing other .NET Standard projects.
+			Assert.IsTrue (netstandard10.CanReferenceProject (netstandard10, out reason));
+			Assert.IsFalse (netstandard10.CanReferenceProject (netstandard16, out reason));
+			Assert.IsFalse (netstandard10.CanReferenceProject (netstandard17, out reason));
+			Assert.IsFalse (netstandard10.CanReferenceProject (netstandard20, out reason));
+			Assert.IsTrue (netstandard16.CanReferenceProject (netstandard10, out reason));
+			Assert.IsTrue (netstandard16.CanReferenceProject (netstandard16, out reason));
+			Assert.IsFalse (netstandard16.CanReferenceProject (netstandard17, out reason));
+			Assert.IsFalse (netstandard16.CanReferenceProject (netstandard20, out reason));
+			Assert.IsTrue (netstandard20.CanReferenceProject (netstandard10, out reason));
+			Assert.IsTrue (netstandard20.CanReferenceProject (netstandard16, out reason));
+			Assert.IsTrue (netstandard20.CanReferenceProject (netstandard17, out reason));
+			Assert.IsTrue (netstandard20.CanReferenceProject (netstandard20, out reason));
+		}
 	}
 }
