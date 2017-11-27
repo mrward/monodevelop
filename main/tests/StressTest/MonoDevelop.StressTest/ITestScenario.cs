@@ -1,10 +1,10 @@
 ﻿//
-// TestService.cs
+// ITestScenario.cs
 //
 // Author:
-//       Michael Hutchinson <m.j.hutchinson@gmail.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2017 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,30 +25,11 @@
 // THE SOFTWARE.
 
 using System;
-using MonoDevelop.Components.AutoTest;
-using System.Collections.Generic;
 
-namespace UserInterfaceTests
+namespace MonoDevelop.StressTest
 {
-	public static class TestService
+	public interface ITestScenario
 	{
-		public static AutoTestClientSession Session { get; private set; }
-
-		public static void StartSession (string monoDevelopBinPath = null, string profilePath = null)
-		{
-			Session = new AutoTestClientSession ();
-
-			Session.StartApplication (file: monoDevelopBinPath, environment: new Dictionary<string,string> {
-				{ "MONODEVELOP_PROFILE", profilePath ?? Util.CreateTmpDir ("profile") }
-			});
-
-			Session.SetGlobalValue ("MonoDevelop.Core.Instrumentation.InstrumentationService.Enabled", true);
-			WorkbenchExtensions.GrabDesktopFocus ();
-		}
-
-		public static void EndSession ()
-		{
-			Session.Stop ();
-		}
+		void Run ();
 	}
 }

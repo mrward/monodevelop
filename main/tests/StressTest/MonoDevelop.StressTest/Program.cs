@@ -1,10 +1,10 @@
 ﻿//
-// TestService.cs
+// Program.cs
 //
 // Author:
-//       Michael Hutchinson <m.j.hutchinson@gmail.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2017 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,30 +25,52 @@
 // THE SOFTWARE.
 
 using System;
-using MonoDevelop.Components.AutoTest;
-using System.Collections.Generic;
+using MonoDevelop.Core;
 
-namespace UserInterfaceTests
+namespace MonoDevelop.StressTest
 {
-	public static class TestService
+	class MainClass
 	{
-		public static AutoTestClientSession Session { get; private set; }
+		static StressTestApp app;
 
-		public static void StartSession (string monoDevelopBinPath = null, string profilePath = null)
+		public static int Main (string[] args)
 		{
-			Session = new AutoTestClientSession ();
+			try {
+				Run (args);
+			} catch (UserException ex) {
+				Console.WriteLine (ex.Message);
+				return -1;
+			} catch (Exception ex) {
+				Console.WriteLine (ex);
+				return -1;
+			}
 
-			Session.StartApplication (file: monoDevelopBinPath, environment: new Dictionary<string,string> {
-				{ "MONODEVELOP_PROFILE", profilePath ?? Util.CreateTmpDir ("profile") }
-			});
-
-			Session.SetGlobalValue ("MonoDevelop.Core.Instrumentation.InstrumentationService.Enabled", true);
-			WorkbenchExtensions.GrabDesktopFocus ();
+			return 0;
 		}
 
-		public static void EndSession ()
+		static void Run (string[] args)
 		{
-			Session.Stop ();
+			Console.CancelKeyPress += ConsoleCancelKeyPress;
+			var options = new StressTestOptions ();
+			options.Parse (args);
+
+			if (options.Help) {
+				options.ShowHelp ();
+				return;
+			}
+
+			app = new StressTestApp (options);
+			app.Start ();
+			app.Stop ();
+		}
+
+		static void ConsoleCancelKeyPress (object sender, ConsoleCancelEventArgs e)
+		{
+			try {
+				app?.Stop ();
+			} catch (Exception ex) {
+				Console.WriteLine (ex);
+			}
 		}
 	}
 }

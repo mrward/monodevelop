@@ -1,10 +1,10 @@
 ﻿//
-// TestService.cs
+// TextEditor.cs
 //
 // Author:
-//       Michael Hutchinson <m.j.hutchinson@gmail.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2017 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,30 +25,50 @@
 // THE SOFTWARE.
 
 using System;
-using MonoDevelop.Components.AutoTest;
 using System.Collections.Generic;
+using MonoDevelop.Components.AutoTest;
+using MonoDevelop.Ide.Commands;
+using UserInterfaceTests;
 
-namespace UserInterfaceTests
+namespace MonoDevelop.StressTest
 {
-	public static class TestService
+	public static class TextEditor
 	{
-		public static AutoTestClientSession Session { get; private set; }
-
-		public static void StartSession (string monoDevelopBinPath = null, string profilePath = null)
-		{
-			Session = new AutoTestClientSession ();
-
-			Session.StartApplication (file: monoDevelopBinPath, environment: new Dictionary<string,string> {
-				{ "MONODEVELOP_PROFILE", profilePath ?? Util.CreateTmpDir ("profile") }
-			});
-
-			Session.SetGlobalValue ("MonoDevelop.Core.Instrumentation.InstrumentationService.Enabled", true);
-			WorkbenchExtensions.GrabDesktopFocus ();
+		static AutoTestClientSession Session {
+			get { return TestService.Session; }
 		}
 
-		public static void EndSession ()
+		public static void MoveCaretToDocumentStart ()
 		{
-			Session.Stop ();
+			Session.ExecuteCommand (TextEditorCommands.DocumentStart);
+		}
+
+		public static void EnterText (IEnumerable<string> items)
+		{
+			foreach (string text in items) {
+				Session.EnterText (IdeQuery.TextArea, text);
+			}
+		}
+
+		public static void EnterText (string text)
+		{
+			Session.EnterText (IdeQuery.TextArea, text);
+		}
+
+		/// <summary>
+		/// Seems to timeout sending first character and character never appears
+		/// in text editor.
+		/// </summary>
+		public static void TypeText (string text)
+		{
+			foreach (char key in text) {
+				Session.TypeKey (IdeQuery.TextArea, key, null);
+			}
+		}
+
+		public static void DeleteToLineStart ()
+		{
+			Session.ExecuteCommand (TextEditorCommands.DeleteToLineStart);
 		}
 	}
 }

@@ -1,10 +1,10 @@
 ﻿//
-// TestService.cs
+// AssemblyInfo.cs
 //
 // Author:
-//       Michael Hutchinson <m.j.hutchinson@gmail.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2017 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,29 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
-using System;
-using MonoDevelop.Components.AutoTest;
-using System.Collections.Generic;
+// Information about this assembly is defined by the following attributes. 
+// Change them to the values specific to your project.
 
-namespace UserInterfaceTests
-{
-	public static class TestService
-	{
-		public static AutoTestClientSession Session { get; private set; }
+[assembly: AssemblyTitle ("MonoDevelop.StressTest")]
+[assembly: AssemblyDescription ("")]
+[assembly: AssemblyConfiguration ("")]
+[assembly: AssemblyCompany ("Microsoft")]
+[assembly: AssemblyProduct ("")]
+[assembly: AssemblyCopyright ("Microsoft")]
+[assembly: AssemblyTrademark ("")]
+[assembly: AssemblyCulture ("")]
 
-		public static void StartSession (string monoDevelopBinPath = null, string profilePath = null)
-		{
-			Session = new AutoTestClientSession ();
+// The assembly version has the format "{Major}.{Minor}.{Build}.{Revision}".
+// The form "{Major}.{Minor}.*" will automatically update the build and revision,
+// and "{Major}.{Minor}.{Build}.*" will update just the revision.
 
-			Session.StartApplication (file: monoDevelopBinPath, environment: new Dictionary<string,string> {
-				{ "MONODEVELOP_PROFILE", profilePath ?? Util.CreateTmpDir ("profile") }
-			});
+[assembly: AssemblyVersion ("1.0.0")]
 
-			Session.SetGlobalValue ("MonoDevelop.Core.Instrumentation.InstrumentationService.Enabled", true);
-			WorkbenchExtensions.GrabDesktopFocus ();
-		}
+// The following attributes are used to specify the signing key for the assembly, 
+// if desired. See the Mono documentation for more information about signing.
 
-		public static void EndSession ()
-		{
-			Session.Stop ();
-		}
-	}
-}
+//[assembly: AssemblyDelaySign(false)]
+//[assembly: AssemblyKeyFile("")]

@@ -1,10 +1,10 @@
 ﻿//
-// TestService.cs
+// TestScenarioProvider.cs
 //
 // Author:
-//       Michael Hutchinson <m.j.hutchinson@gmail.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2017 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,30 +25,30 @@
 // THE SOFTWARE.
 
 using System;
-using MonoDevelop.Components.AutoTest;
-using System.Collections.Generic;
+using System.IO;
 
-namespace UserInterfaceTests
+namespace MonoDevelop.StressTest
 {
-	public static class TestService
+	public static class TestScenarioProvider
 	{
-		public static AutoTestClientSession Session { get; private set; }
-
-		public static void StartSession (string monoDevelopBinPath = null, string profilePath = null)
+		public static ITestScenario GetTestScenario ()
 		{
-			Session = new AutoTestClientSession ();
+			string mainPath = StressTestApp.GetMonoDevelopMainPath ();
+			string filesRootPath = Path.Combine (mainPath, "external/mono-addins");
 
-			Session.StartApplication (file: monoDevelopBinPath, environment: new Dictionary<string,string> {
-				{ "MONODEVELOP_PROFILE", profilePath ?? Util.CreateTmpDir ("profile") }
-			});
+			var scenario = new TestScenario (
+				Path.Combine (mainPath, "tests/StressTest/TestProject/TestProject.sln"),
+				new [] {
+					Path.Combine (filesRootPath, "Mono.Addins/Mono.Addins/Addin.cs"),
+					Path.Combine (filesRootPath, "Mono.Addins/Mono.Addins.Localization/StringResourceLocalizer.cs"),
+					Path.Combine (filesRootPath, "Mono.Addins/Mono.Addins.Description/AddinDescription.cs"),
+					"Program.cs"
+				}
+			);
 
-			Session.SetGlobalValue ("MonoDevelop.Core.Instrumentation.InstrumentationService.Enabled", true);
-			WorkbenchExtensions.GrabDesktopFocus ();
-		}
+			scenario.TextToEnter = new [] { "using S", "yst", "em;" };
 
-		public static void EndSession ()
-		{
-			Session.Stop ();
+			return scenario;
 		}
 	}
 }

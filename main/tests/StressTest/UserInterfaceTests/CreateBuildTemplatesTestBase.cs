@@ -1,10 +1,11 @@
 ﻿//
-// TestService.cs
+// CreateBuildTemplatesTestBase.cs
 //
 // Author:
-//       Michael Hutchinson <m.j.hutchinson@gmail.com>
+//       Lluis Sanchez Gual <lluis@novell.com>
+//       Manish Sinha <manish.sinha@xamarin.com>
 //
-// Copyright (c) 2014 Xamarin Inc.
+// Copyright (c) 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,30 +26,25 @@
 // THE SOFTWARE.
 
 using System;
-using MonoDevelop.Components.AutoTest;
-using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace UserInterfaceTests
 {
-	public static class TestService
+	public class CreateBuildTemplatesTestBase
 	{
-		public static AutoTestClientSession Session { get; private set; }
+		public string GeneralKindRoot { get { return "General"; } }
 
-		public static void StartSession (string monoDevelopBinPath = null, string profilePath = null)
+		public string OtherCategoryRoot { get { return "Other"; } }
+
+		public readonly static Action EmptyAction = Ide.EmptyAction;
+
+		static Regex cleanSpecialChars = new Regex ("[^0-9a-zA-Z]+", RegexOptions.Compiled);
+
+		public readonly static Action WaitForPackageUpdate = Ide.WaitForPackageUpdate;
+
+		public static string GenerateProjectName (string templateName)
 		{
-			Session = new AutoTestClientSession ();
-
-			Session.StartApplication (file: monoDevelopBinPath, environment: new Dictionary<string,string> {
-				{ "MONODEVELOP_PROFILE", profilePath ?? Util.CreateTmpDir ("profile") }
-			});
-
-			Session.SetGlobalValue ("MonoDevelop.Core.Instrumentation.InstrumentationService.Enabled", true);
-			WorkbenchExtensions.GrabDesktopFocus ();
-		}
-
-		public static void EndSession ()
-		{
-			Session.Stop ();
+			return cleanSpecialChars.Replace (templateName, string.Empty);
 		}
 	}
 }
