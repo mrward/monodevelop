@@ -1294,6 +1294,7 @@ namespace MonoDevelop.Projects
 			metadata ["ProjectID"] = ItemId;
 			metadata ["ProjectType"] = TypeGuid;
 			metadata ["ProjectFlavor"] = FlavorGuids.FirstOrDefault () ?? TypeGuid;
+			metadata ["SolutionSessionID"] = SolutionSessionId.ToString ("B");
 
 			var c = GetConfiguration (configuration);
 			if (c != null) {

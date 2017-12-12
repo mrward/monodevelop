@@ -63,7 +63,7 @@ namespace MonoDevelop.Projects.Extensions
 				var unsupporedFlavor = p.ProjectTypeGuids.FirstOrDefault (fid => !MSBuildProjectService.IsKnownFlavorGuid (fid) && !MSBuildProjectService.IsKnownTypeGuid (fid));
 				if (unsupporedFlavor != null) {
 					// The project has a flavor that's not supported. Return a fake project (if possible).
-					return MSBuildProjectService.CreateUnknownSolutionItem (monitor, fileName, Guid, unsupporedFlavor, null);
+					return MSBuildProjectService.CreateUnknownSolutionItem (monitor, fileName, Guid, unsupporedFlavor, ctx);
 				}
 
 				if (MSBuildSupport == MSBuildSupport.NotSupported || MSBuildProjectService.GetMSBuildSupportForFlavors (p.ProjectTypeGuids) == MSBuildSupport.NotSupported)

@@ -84,8 +84,14 @@ namespace MonoDevelop.Projects
 			configurations = new SolutionConfigurationCollection (this);
 			runConfigurations = new MultiItemSolutionRunConfigurationCollection (this);
 			format = MSBuildFileFormat.DefaultFormat;
+			SolutionSessionId = Guid.NewGuid ();
 			Initialize (this);
 		}
+
+		/// <summary>
+		/// Solution session id used with instrumentation counters.
+		/// </summary>
+		internal Guid SolutionSessionId { get; set; }
 
 		public override FilePath FileName {
 			[ThreadSafe] get {

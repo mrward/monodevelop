@@ -168,6 +168,11 @@ namespace MonoDevelop.Projects
 			if (capabilities.Any ()) {
 				metadata ["Capabilities"] = string.Join (" ", capabilities);
 			}
+
+			Guid solutionSessionId = project.SolutionSessionId;
+			if (solutionSessionId != Guid.Empty) {
+				metadata ["SolutionSessionID"] = solutionSessionId.ToString ("B");
+			}
 		}
 
 		public Task<SolutionFolderItem> ReadSolutionItem (ProgressMonitor monitor, SolutionItemReference reference, params WorkspaceItem[] workspaces)
@@ -251,9 +256,12 @@ namespace MonoDevelop.Projects
 		static void UpdateReadWorkspaceItemMetadata (IDictionary<string, string> metadata, WorkspaceItem item)
 		{
 			// Is this a workspace or a solution?
-			metadata ["IsSolution"] = (item is Solution).ToString ();
+			var solution = item as Solution;
+			metadata ["IsSolution"] = (solution != null).ToString ();
 			metadata ["LoadSucceed"] = bool.TrueString;
 			metadata ["Reason"] = "OpenSolution";
+			if (solution != null)
+				metadata ["SolutionSessionID"] = solution.SolutionSessionId.ToString ("B");
 			metadata ["TotalProjectCount"] = item.GetAllItems<Project> ().Count ().ToString ();
 		}
 		

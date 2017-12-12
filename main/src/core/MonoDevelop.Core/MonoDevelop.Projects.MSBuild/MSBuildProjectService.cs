@@ -445,6 +445,8 @@ namespace MonoDevelop.Projects.MSBuild
 				var project = (Project) CreateUninitializedInstance (typeof(UnknownProject));
 				project.UnsupportedProjectMessage = unsupportedMessage;
 				project.SetCreationContext (Project.CreationContext.Create (typeGuid, new string[0]));
+				if (ctx?.Solution != null)
+					project.SolutionSessionId = ctx.Solution.SolutionSessionId;
 				return project;
 			} else
 				return null;

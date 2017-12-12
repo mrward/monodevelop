@@ -103,6 +103,8 @@ namespace MonoDevelop.Projects.Extensions
 			} else
 				item = MSBuildProjectService.CreateUninitializedInstance (ItemType);
 			
+			if (ctx?.Solution != null)
+				item.SolutionSessionId = ctx.Solution.SolutionSessionId;
 			item.TypeGuid = Guid;
 			return item;
 		}

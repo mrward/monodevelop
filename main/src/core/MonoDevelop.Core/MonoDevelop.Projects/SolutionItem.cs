@@ -290,6 +290,19 @@ namespace MonoDevelop.Projects
 			}
 		}
 
+		Guid solutionSessionId;
+
+		internal Guid SolutionSessionId {
+			get {
+				if (ParentSolution != null)
+					return ParentSolution.SolutionSessionId;
+				return solutionSessionId;
+			}
+			set {
+				solutionSessionId = value;
+			}
+		}
+
 		/// <summary>
 		/// Changes the format of this item. This method doesn't save the item, it only does in memory-changes.
 		/// </summary>
