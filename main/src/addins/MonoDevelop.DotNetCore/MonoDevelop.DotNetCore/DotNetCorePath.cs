@@ -37,18 +37,30 @@ namespace MonoDevelop.DotNetCore
 			FileName = GetDotNetFileName ();
 		}
 
+		public DotNetCorePath (string fileName)
+		{
+			FileName = fileName;
+			IsMissing = !File.Exists (fileName);
+		}
+
 		public string FileName { get; private set; }
 		public bool IsMissing { get; private set; }
+
+		public string ParentDirectory {
+			get {
+				if (!string.IsNullOrEmpty (FileName)) {
+					return Path.GetDirectoryName (FileName);
+				}
+				return null;
+			}
+		}
 
 		string GetDotNetFileName ()
 		{
 			if (Platform.IsWindows) {
 				return GetDotNetFileNameOnWindows ();
 			} else {
-				string dotnetFileName = "/usr/local/share/dotnet/dotnet";
-				if (Platform.IsLinux)
-					dotnetFileName = "/usr/share/dotnet/dotnet";
-
+				string dotnetFileName = GetDefaultPath ();
 				if (File.Exists (dotnetFileName)) {
 					return dotnetFileName;
 				}
@@ -84,6 +96,25 @@ namespace MonoDevelop.DotNetCore
 			IsMissing = true;
 
 			return executableName;
+		}
+
+		public bool IsDefault ()
+		{
+			FilePath defaultPath = GetDefaultPath ();
+			var currentPath = new FilePath (FileName);
+			return currentPath == defaultPath;
+		}
+
+		static string GetDefaultPath ()
+		{
+			if (Platform.IsMac)
+				return "/usr/local/share/dotnet/dotnet";
+
+			if (Platform.IsLinux)
+				return "/usr/share/dotnet/dotnet";
+
+			// Windows.
+			return "dotnet.exe";
 		}
 	}
 }
