@@ -1,0 +1,7 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="CollectGeneratedFile" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <Compile Include="FileFromTarget.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

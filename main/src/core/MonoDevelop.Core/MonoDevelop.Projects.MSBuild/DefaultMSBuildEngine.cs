@@ -1231,6 +1231,10 @@ namespace MonoDevelop.Projects.MSBuild
 			project.TargetsIgnoringCondition.Add (newTarget);
 			if (condIsTrue)
 				project.Targets.Add (newTarget);
+
+			foreach (var itemGroup in target.ChildNodes.OfType<MSBuildItemGroup> ()) {
+				Evaluate (project, context, itemGroup);
+			}
 		}
 
 		Dictionary<string, ConditionExpression> conditionCache = new Dictionary<string, ConditionExpression> ();

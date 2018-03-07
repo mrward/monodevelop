@@ -168,5 +168,26 @@ namespace MonoDevelop.Projects
 			Assert.IsFalse (sourceFiles.Any (f => f.FilePath.FileName == "Conditioned.cs"));
 			project.Dispose ();
 		}
+
+		[Test]
+		public async Task GetSourceFilesFromProjectWithCompileItemsFromImportedTarget ()
+		{
+			string projectFile = Util.GetSampleProject ("FilesFromImportedTarget", "FilesFromImportedTarget.csproj");
+			var project = (Project) await Services.ProjectService.ReadSolutionItem (Util.GetMonitor (), projectFile);
+
+			var projectFiles = project.Files.ToList ();
+			var sourceFiles = await project.GetSourceFilesAsync (project.Configurations[0].Selector);
+
+			foreach (var file in projectFiles) {
+				var sourceFile = sourceFiles.FirstOrDefault (sf => sf.FilePath == file.FilePath);
+				Assert.IsNotNull (sourceFile, "GetSourceFilesAsync missing files");
+			}
+			Assert.IsTrue (sourceFiles.Any (f => f.FilePath.FileName == "FileFromTarget.cs"));
+
+			var msg = "GetSourceFilesAsync should include imported items";
+			Assert.AreEqual (projectFiles.Count + 1, sourceFiles.Length, msg);
+
+			project.Dispose ();
+		}
 	}
 }
