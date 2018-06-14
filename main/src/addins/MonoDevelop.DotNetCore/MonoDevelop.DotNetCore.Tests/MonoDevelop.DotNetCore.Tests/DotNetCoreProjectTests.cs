@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
@@ -250,6 +251,56 @@ namespace MonoDevelop.DotNetCore.Tests
 			Assert.IsTrue (project.UseDefaultMetadataForExcludedExpandedItems);
 			Assert.IsTrue (project.UseAdvancedGlobSupport);
 			Assert.IsTrue (project.UseFileWatcher);
+		}
+
+		/// <summary>
+		/// ASP.NET Core projects have different build actions for files in the wwwroot folder. This
+		/// tests that the correct build actions are used for different folders.
+		/// </summary>
+		[Test]
+		public async Task AspNetCoreProject_DefaultBuildActions ()
+		{
+			string projectFileName = Util.GetSampleProject ("aspnetcore", "aspnetcore.csproj");
+			using (var project = (DotNetProject) await Services.ProjectService.ReadSolutionItem (Util.GetMonitor (), projectFileName)) {
+
+				//CreateNuGetConfigFile (project.BaseDirectory);
+
+				//var process = Process.Start ("msbuild", $"/t:Restore /p:RestoreDisableParallel=true \"{projectFileName}\"");
+				//Assert.IsTrue (process.WaitForExit (120000), "Timeout restoring NuGet packages.");
+				//Assert.AreEqual (0, process.ExitCode);
+
+				var fileName = project.BaseDirectory.Combine ("test.txt");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("None", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("MyClass.cs");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("Compile", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("MyPage.html");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("None", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("MyPage.cshtml");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("Content", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("settings.json");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("Content", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("test.config");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("Content", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("MyPage.resx");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("EmbeddedResource", project.GetDefaultBuildAction (fileName));
+
+				fileName = project.BaseDirectory.Combine ("wwwroot", "MyPage.html");
+				File.WriteAllText (fileName, string.Empty);
+				Assert.AreEqual ("Content", project.GetDefaultBuildAction (fileName));
+			}
 		}
 	}
 }
