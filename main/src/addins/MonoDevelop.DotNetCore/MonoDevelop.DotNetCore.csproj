@@ -29,6 +29,14 @@
       <HintPath>..\..\..\packages\NuGet.Versioning.4.8.0\lib\net46\NuGet.Versioning.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="NuGet.Packaging.Core">
+      <HintPath>..\..\..\packages\NuGet.Packaging.Core.4.8.0\lib\net46\NuGet.Packaging.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="NuGet.Packaging.Core">
+      <HintPath>..\..\..\packages\NuGet.Packaging.4.8.0\lib\net46\NuGet.Packaging.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />

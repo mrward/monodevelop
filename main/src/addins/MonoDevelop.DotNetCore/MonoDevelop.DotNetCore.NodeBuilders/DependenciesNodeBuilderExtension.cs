@@ -44,6 +44,7 @@ namespace MonoDevelop.DotNetCore.NodeBuilders
 
 			packageManagementEvents = PackageManagementServices.PackageManagementEvents;
 			packageManagementEvents.PackageOperationsFinished += PackageOperationsFinished;
+			packageManagementEvents.UpdatedPackagesAvailable += UpdatePackagesAvailable;
 
 			IdeApp.Workspace.ReferenceAddedToProject += OnReferencesChanged;
 			IdeApp.Workspace.ReferenceRemovedFromProject += OnReferencesChanged;
@@ -52,6 +53,8 @@ namespace MonoDevelop.DotNetCore.NodeBuilders
 		public override void Dispose ()
 		{
 			packageManagementEvents.PackageOperationsFinished -= PackageOperationsFinished;
+			packageManagementEvents.UpdatedPackagesAvailable -= UpdatePackagesAvailable;
+
 			IdeApp.Workspace.ReferenceAddedToProject -= OnReferencesChanged;
 			IdeApp.Workspace.ReferenceRemovedFromProject -= OnReferencesChanged;
 
@@ -133,6 +136,11 @@ namespace MonoDevelop.DotNetCore.NodeBuilders
 				if (project.IsDotNetCoreProject ())
 					RefreshChildNodes (project, packagesOnly: false);
 			});
+		}
+
+		void UpdatePackagesAvailable (object sender, EventArgs e)
+		{
+			RefreshAllChildNodes ();
 		}
 	}
 }
