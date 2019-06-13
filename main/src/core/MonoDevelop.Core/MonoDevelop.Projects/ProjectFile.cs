@@ -479,7 +479,8 @@ namespace MonoDevelop.Projects
 			base.OnProjectSet ();
 			if (Project != null) {
 				base.Include = Include;
-				OnVirtualPathChanged (FilePath.Null, ProjectVirtualPath);
+				if (VirtualPathChanged != null)
+					OnVirtualPathChanged (FilePath.Null, ProjectVirtualPath);
 			}
 		}
 
