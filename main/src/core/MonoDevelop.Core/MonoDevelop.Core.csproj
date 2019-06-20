@@ -733,7 +733,7 @@
     <Compile Include="MonoDevelop.Projects.MSBuild\MSBuildSdkProject.cs" />
     <Compile Include="MonoDevelop.Projects\SdkProjectShortTargetFramework.cs" />
     <Compile Include="MonoDevelop.Utilities\SampleProfiler.cs" />
-    <Compile Include="MonoDevelop.Projects\ItemFrameworkConfigurationSelector.cs" />
+    <Compile Include="MonoDevelop.Projects\DotNetProjectFrameworkConfigurationSelector.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildVariables.cs.in" />
