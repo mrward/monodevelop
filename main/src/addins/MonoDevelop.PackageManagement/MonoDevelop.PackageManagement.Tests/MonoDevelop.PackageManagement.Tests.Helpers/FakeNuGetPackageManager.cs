@@ -59,6 +59,7 @@ namespace MonoDevelop.PackageManagement.Tests.Helpers
 		public NuGetProject ExecutedNuGetProject;
 		public List<NuGetProjectAction> ExecutedActions;
 		public INuGetProjectContext ExecutedProjectContext;
+		public SourceCacheContext ExecutedSourceCacheContext;
 		public CancellationToken ExecutedCancellationToken;
 
 		public Action BeforeExecuteAction = () => { };
@@ -74,6 +75,7 @@ namespace MonoDevelop.PackageManagement.Tests.Helpers
 			ExecutedNuGetProject = nuGetProject;
 			ExecutedActions = nuGetProjectActions.ToList ();
 			ExecutedProjectContext = nuGetProjectContext;
+			ExecutedSourceCacheContext = sourceCacheContext;
 			ExecutedCancellationToken = token;
 
 			BeforeExecuteAction ();
@@ -82,6 +84,25 @@ namespace MonoDevelop.PackageManagement.Tests.Helpers
 				return BeforeExecuteActionTask.Invoke ();
 
 			return Task.FromResult (0);
+		}
+
+		public List<NuGetProject> ExecutedNuGetProjects;
+
+		public Task ExecuteNuGetProjectActionsAsync (
+			IEnumerable<NuGetProject> nuGetProjects,
+			IEnumerable<NuGetProjectAction> nuGetProjectActions,
+			INuGetProjectContext nuGetProjectContext,
+			SourceCacheContext sourceCacheContext,
+			CancellationToken token)
+		{
+			ExecutedNuGetProjects = nuGetProjects.ToList ();
+
+			return ExecuteNuGetProjectActionsAsync (
+				(NuGetProject)null,
+				nuGetProjectActions,
+				nuGetProjectContext,
+				sourceCacheContext,
+				token);
 		}
 
 		public NuGetVersion LatestVersion = new NuGetVersion ("1.2.3");
@@ -201,6 +222,30 @@ namespace MonoDevelop.PackageManagement.Tests.Helpers
 				secondarySources,
 				token
 			);
+		}
+
+		public List<PackageIdentity> PreviewUpdatePackages;
+		public List<NuGetProject> PreviewUpdateProjects;
+
+		public Task<IEnumerable<NuGetProjectAction>> PreviewUpdatePackagesAsync (
+			List<PackageIdentity> packageIdentities,
+			IEnumerable<NuGetProject> nuGetProjects,
+			ResolutionContext resolutionContext,
+			INuGetProjectContext nuGetProjectContext,
+			IEnumerable<SourceRepository> primarySources,
+			IEnumerable<SourceRepository> secondarySources,
+			CancellationToken token)
+		{
+			PreviewUpdatePackages = packageIdentities;
+			PreviewUpdateProjects = nuGetProjects.ToList ();
+
+			return PreviewUpdatePackagesAsync (
+				null,
+				resolutionContext,
+				nuGetProjectContext,
+				primarySources,
+				secondarySources,
+				token);
 		}
 
 		public void AddPackageToPackagesFolder (string packageId, string version)

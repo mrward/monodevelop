@@ -172,8 +172,7 @@ namespace MonoDevelop.PackageManagement
 				solutionManager.SolutionDirectory,
 				cancellationToken);
 
-			var missingPackages = packages.Select (IsMissingForCurrentProject).ToList ();
-			if (missingPackages.Any ()) {
+			if (packages.Any (package => IsMissingForCurrentProject (package))) {
 				using (var monitor = new PackageRestoreMonitor (restoreManager, packageManagementEvents)) {
 					using (var cacheContext = new SourceCacheContext ()) {
 						var downloadContext = new PackageDownloadContext (cacheContext);

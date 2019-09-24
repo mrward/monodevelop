@@ -1,10 +1,10 @@
-﻿//
-// UpdateAllNuGetPackagesInProjectActionTests.cs
+//
+// UpdateMultipleNuGetPackagesActionTests.cs
 //
 // Author:
-//       Matt Ward <matt.ward@xamarin.com>
+//       Matt Ward <matt.ward@microsoft.com>
 //
-// Copyright (c) 2016 Xamarin Inc. (http://xamarin.com)
+// Copyright (c) 2019 Microsoft Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,15 +31,18 @@ using MonoDevelop.PackageManagement.Tests.Helpers;
 using MonoDevelop.Projects;
 using NuGet.Configuration;
 using NuGet.PackageManagement;
+using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
+using NuGet.Versioning;
 using NUnit.Framework;
 
 namespace MonoDevelop.PackageManagement.Tests
 {
-	public class UpdateAllNuGetPackagesInProjectActionTests
+	[TestFixture]
+	public class UpdateMultipleNuGetPackagesActionTests
 	{
-		TestableUpdateAllNuGetPackagesInProjectAction action;
+		TestableUpdateMultipleNuGetPackagesAction action;
 		FakeSolutionManager solutionManager;
 		FakeDotNetProject project;
 		FakeNuGetProject nugetProject;
@@ -50,30 +53,36 @@ namespace MonoDevelop.PackageManagement.Tests
 		FakeFileRemover fileRemover;
 		FakePackageRestoreManager restoreManager;
 
-		void CreateAction (string projectName = "MyProject", params ProjectReference[] projectReferences)
+		void CreateAction (
+			string projectName = "MyProject",
+			List<SourceRepository> secondarySources = null,
+			params ProjectReference [] projectReferences)
 		{
 			project = new FakeDotNetProject (@"d:\projects\MyProject\MyProject.csproj");
 			project.Name = projectName;
 			project.References.AddRange (projectReferences);
 			solutionManager = new FakeSolutionManager ();
 			nugetProject = new FakeNuGetProject (project);
-			solutionManager.NuGetProjects[project] = nugetProject;
+			solutionManager.NuGetProjects [project] = nugetProject;
 
 			var metadataResourceProvider = new FakePackageMetadataResourceProvider ();
 			packageMetadataResource = metadataResourceProvider.PackageMetadataResource;
 			var source = new PackageSource ("http://test.com");
-			var providers = new INuGetResourceProvider[] {
+			var providers = new INuGetResourceProvider [] {
 				metadataResourceProvider
 			};
 			var sourceRepository = new SourceRepository (source, providers);
 			primaryRepositories = new [] {
 				sourceRepository
 			}.ToList ();
-			solutionManager.SourceRepositoryProvider.Repositories.AddRange (primaryRepositories);
 
-			action = new TestableUpdateAllNuGetPackagesInProjectAction (
-				solutionManager,
-				project);
+			solutionManager.SourceRepositoryProvider.Repositories.AddRange (secondarySources ?? primaryRepositories);
+
+			action = new TestableUpdateMultipleNuGetPackagesAction (
+				primaryRepositories,
+				solutionManager);
+
+			action.AddProject (project);
 
 			packageManager = action.PackageManager;
 			packageManagementEvents = action.PackageManagementEvents;
@@ -81,21 +90,15 @@ namespace MonoDevelop.PackageManagement.Tests
 			restoreManager = action.RestoreManager;
 		}
 
+		void AddPackageToUpdate (string packageId, string version)
+		{
+			action.AddPackageToUpdate (new PackageIdentity (packageId, NuGetVersion.Parse (version)));
+		}
+
 		void AddInstallPackageIntoProjectAction (string packageId, string version)
 		{
 			var projectAction = new FakeNuGetProjectAction (packageId, version, NuGetProjectActionType.Install);
 			packageManager.UpdateActions.Add (projectAction);
-		}
-
-		void AddUninstallPackageFromProjectAction (string packageId, string version)
-		{
-			var projectAction = new FakeNuGetProjectAction (packageId, version, NuGetProjectActionType.Uninstall);
-			packageManager.UpdateActions.Add (projectAction);
-		}
-
-		void AddPackageToProject (string packageId, string version)
-		{
-			nugetProject.AddPackageReference (packageId, version);
 		}
 
 		void AddUnrestoredPackageForProject (string projectName)
@@ -112,61 +115,86 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_PackagesAreRestoredAndNoPrereleasePackages_ActionsResolvedFromNuGetPackageManager ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 
 			action.Execute ();
 
 			Assert.AreEqual (primaryRepositories, packageManager.PreviewUpdatePrimarySources);
-			Assert.AreEqual (new SourceRepository[0], packageManager.PreviewUpdateSecondarySources);
-			Assert.AreEqual (nugetProject, packageManager.PreviewUpdateProject);
-			Assert.IsNull (packageManager.PreviewUpdatePackageId);
+			Assert.AreEqual (primaryRepositories, packageManager.PreviewUpdateSecondarySources);
+			Assert.AreEqual (nugetProject, packageManager.PreviewUpdateProjects.Single ());
+			Assert.AreEqual ("Test", packageManager.PreviewUpdatePackages.Single ().Id);
+			Assert.AreEqual ("1.0", packageManager.PreviewUpdatePackages.Single ().Version.ToString ());
 			Assert.IsFalse (packageManager.PreviewUpdateResolutionContext.IncludePrerelease);
 			Assert.AreEqual (VersionConstraints.None, packageManager.PreviewUpdateResolutionContext.VersionConstraints);
-			Assert.IsFalse (packageManager.PreviewUpdateResolutionContext.IncludeUnlisted);
+			Assert.IsTrue (packageManager.PreviewUpdateResolutionContext.IncludeUnlisted);
 			Assert.AreEqual (DependencyBehavior.Lowest, packageManager.PreviewUpdateResolutionContext.DependencyBehavior);
+		}
+
+		[Test]
+		public void Execute_SinglePrimarySource_TwoEnabledSources_SecondarySourcesAreEnabledSources ()
+		{
+			var secondarySources = new List<SourceRepository> ();
+			secondarySources.Add (new SourceRepository (new PackageSource ("A"), Enumerable.Empty<INuGetResourceProvider> ()));
+			secondarySources.Add (new SourceRepository (new PackageSource ("A"), Enumerable.Empty<INuGetResourceProvider> ()));
+			CreateAction (secondarySources: secondarySources);
+			AddPackageToUpdate ("Test", "1.0");
+			AddInstallPackageIntoProjectAction ("Test", "1.2");
+
+			action.Execute ();
+
+			Assert.AreEqual (primaryRepositories, packageManager.PreviewUpdatePrimarySources);
+			Assert.AreEqual (secondarySources, packageManager.PreviewUpdateSecondarySources);
 		}
 
 		[Test]
 		public void Execute_PackagesAreRestoredAndNoPrereleasePackages_ActionsAvailableForInstrumentation ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 
 			action.Execute ();
 
-			Assert.AreEqual (action.GetNuGetProjectActions (), packageManager.UpdateActions);
+			var provider = action as INuGetProjectActionsProvider;
+
+			Assert.AreEqual (provider.GetNuGetProjectActions (), packageManager.UpdateActions);
 		}
 
 		[Test]
 		public void Execute_PackagesAreRestoredAndNoPrereleasePackages_UpdatesPackageUsingResolvedActions ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
+			AddPackageToUpdate ("A", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			AddInstallPackageIntoProjectAction ("A", "2.1");
 
 			action.Execute ();
 
 			Assert.AreEqual (packageManager.UpdateActions, packageManager.ExecutedActions);
-			Assert.AreEqual (nugetProject, packageManager.ExecutedNuGetProject);
+			Assert.AreEqual (nugetProject, packageManager.ExecutedNuGetProjects.Single ());
 			Assert.AreEqual (action.ProjectContext, packageManager.ExecutedProjectContext);
+			Assert.AreEqual (packageManager.PreviewUpdateResolutionContext.SourceCacheContext, packageManager.ExecutedSourceCacheContext);
 		}
 
 		[Test]
-		public void Execute_ProjectHasPrereleasePackage_ActionsResolvedFromNuGetPackageManagerWithIncludePrereleaseSetToFalse ()
+		public void Execute_UpdatingToPrereleasePackage_ActionsResolvedFromNuGetPackageManagerWithIncludePrereleaseSetToTrue ()
 		{
 			CreateAction ();
-			AddPackageToProject ("Test", "1.0.1-alpha");
-			AddInstallPackageIntoProjectAction ("Test", "1.2");
+			AddPackageToUpdate ("Test", "1.0.1-alpha");
+			AddInstallPackageIntoProjectAction ("Test", "1.2.1-alpha");
 
 			action.Execute ();
 
-			Assert.IsFalse (packageManager.PreviewUpdateResolutionContext.IncludePrerelease);
+			Assert.IsTrue (packageManager.PreviewUpdateResolutionContext.IncludePrerelease);
 		}
 
 		[Test]
 		public void Execute_NoActions_NoUpdateFoundEventFires ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			IDotNetProject noUpdateFoundForProject = null;
 			packageManagementEvents.NoUpdateFound += (sender, e) => {
 				noUpdateFoundForProject = e.Project;
@@ -174,36 +202,6 @@ namespace MonoDevelop.PackageManagement.Tests
 
 			action.Execute ();
 
-			Assert.AreEqual (project, noUpdateFoundForProject);
-		}
-
-		[Test]
-		public void Execute_OneAction_NoUpdateFoundEventDoesNotFire ()
-		{
-			CreateAction ();
-			AddInstallPackageIntoProjectAction ("Test", "1.2");
-			IDotNetProject noUpdateFoundForProject = null;
-			packageManagementEvents.NoUpdateFound += (sender, e) => {
-				noUpdateFoundForProject = e.Project;
-			};
-
-			action.Execute ();
-
-			Assert.IsNull (noUpdateFoundForProject);
-		}
-
-		[Test]
-		public void Execute_NoActions_NoActionsExecuted ()
-		{
-			CreateAction ();
-			IDotNetProject noUpdateFoundForProject = null;
-			packageManagementEvents.NoUpdateFound += (sender, e) => {
-				noUpdateFoundForProject = e.Project;
-			};
-
-			action.Execute ();
-
-			Assert.IsNull (packageManager.ExecutedActions);
 			Assert.AreEqual (project, noUpdateFoundForProject);
 		}
 
@@ -211,6 +209,7 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_OnePackageAlreadyRestored_PackageIsNotRestored ()
 		{
 			CreateAction ("MyProject");
+			AddPackageToUpdate ("Test", "1.0");
 			solutionManager.SolutionDirectory = @"d:\projects\MyProject".ToNativePath ();
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			nugetProject.AddPackageReference ("Test", "1.2");
@@ -225,9 +224,10 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_OnePackageNotRestored_PackageIsRestored ()
 		{
 			CreateAction ("MyProject");
+			AddPackageToUpdate ("Test", "1.0");
 			solutionManager.SolutionDirectory = @"d:\projects\MyProject".ToNativePath ();
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
-			nugetProject.AddPackageReference ("Test", "1.2");
+			nugetProject.AddPackageReference ("Test", "1.0");
 			AddUnrestoredPackageForProject ("MyProject");
 
 			action.Execute ();
@@ -238,13 +238,14 @@ namespace MonoDevelop.PackageManagement.Tests
 			Assert.AreEqual ("MyProject", packageRestoreData.ProjectNames.Single ());
 			Assert.IsTrue (packageRestoreData.IsMissing);
 			Assert.AreEqual ("Test", packageRestoreData.PackageReference.PackageIdentity.Id);
-			Assert.AreEqual ("1.2", packageRestoreData.PackageReference.PackageIdentity.Version.ToString ());
+			Assert.AreEqual ("1.0", packageRestoreData.PackageReference.PackageIdentity.Version.ToString ());
 		}
 
 		[Test]
 		public void Execute_OnePackageNotRestored_ProjectReferencesRefreshed ()
 		{
 			CreateAction ("MyProject");
+			AddPackageToUpdate ("Test", "1.0");
 			solutionManager.SolutionDirectory = @"d:\projects\MyProject".ToNativePath ();
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			AddUnrestoredPackageForProject ("MyProject");
@@ -258,6 +259,7 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_OnePackageNotRestored_PackagesRestoredEventIsFired ()
 		{
 			CreateAction ("MyProject");
+			AddPackageToUpdate ("Test", "1.0");
 			solutionManager.SolutionDirectory = @"d:\projects\MyProject".ToNativePath ();
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			AddUnrestoredPackageForProject ("MyProject");
@@ -273,6 +275,7 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_OnePackageNotRestoredAndPackageRestoreFails_ExceptionThrownAndRestoreFailureMessageLogged ()
 		{
 			CreateAction ("MyProject");
+			AddPackageToUpdate ("Test", "1.0");
 			solutionManager.SolutionDirectory = @"d:\projects\MyProject".ToNativePath ();
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			AddUnrestoredPackageForProject ("MyProject");
@@ -297,6 +300,7 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_PackagesConfigFileDeletedDuringUpdate_FileServicePackagesConfigFileDeletionIsCancelled ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			string expectedFileName = @"d:\projects\MyProject\packages.config".ToNativePath ();
 			bool? fileRemovedResult = null;
@@ -314,6 +318,7 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_ScriptFileDeletedDuringUpdate_FileDeletionIsNotCancelled ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			string fileName = @"d:\projects\MyProject\scripts\myscript.js".ToNativePath ();
 			bool? fileRemovedResult = null;
@@ -332,7 +337,8 @@ namespace MonoDevelop.PackageManagement.Tests
 		{
 			var originalProjectReference = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NUnit.Framework");
 			originalProjectReference.LocalCopy = true;
-			CreateAction ("MyProject", originalProjectReference);
+			CreateAction ("MyProject", null, originalProjectReference);
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			var firstReferenceBeingAdded = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NewAssembly");
 			var secondReferenceBeingAdded = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NUnit.Framework");
@@ -360,7 +366,8 @@ namespace MonoDevelop.PackageManagement.Tests
 		{
 			var originalProjectReference = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "nunit.framework");
 			originalProjectReference.LocalCopy = true;
-			CreateAction ("MyProject", originalProjectReference);
+			CreateAction ("MyProject", null, originalProjectReference);
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			var firstReferenceBeingAdded = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NewAssembly");
 			var secondReferenceBeingAdded = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NUnit.Framework");
@@ -388,7 +395,8 @@ namespace MonoDevelop.PackageManagement.Tests
 		{
 			var originalProjectReference = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "nunit.framework");
 			originalProjectReference.LocalCopy = false;
-			CreateAction ("MyProject", originalProjectReference);
+			CreateAction ("MyProject", null, originalProjectReference);
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			var firstReferenceBeingAdded = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NewAssembly");
 			firstReferenceBeingAdded.LocalCopy = true;
@@ -416,7 +424,8 @@ namespace MonoDevelop.PackageManagement.Tests
 		{
 			var originalProjectReference = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "nunit.framework");
 			originalProjectReference.LocalCopy = false;
-			CreateAction ("MyProject", originalProjectReference);
+			CreateAction ("MyProject", null, originalProjectReference);
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			var firstReferenceBeingAdded = ProjectReference.CreateCustomReference (ReferenceType.Assembly, "NewAssembly");
 			firstReferenceBeingAdded.LocalCopy = true;
@@ -444,6 +453,7 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_PackagesConfigFileNamedAfterProjectDeletedDuringUpdate_FileServicePackagesConfigFileDeletionIsCancelled ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			string expectedFileName = @"d:\projects\MyProject\packages.MyProject.config".ToNativePath ();
 			bool? fileRemovedResult = null;
@@ -457,31 +467,10 @@ namespace MonoDevelop.PackageManagement.Tests
 		}
 
 		[Test]
-		public void Execute_NuGetProjectIsBuildIntegratedProject_OnAfterExecuteActionsIsCalled ()
-		{
-			CreateAction ();
-			AddInstallPackageIntoProjectAction ("Test", "1.2");
-
-			action.Execute ();
-
-			Assert.AreEqual (packageManager.UpdateActions, nugetProject.ActionsPassedToOnAfterExecuteActions);
-		}
-
-		[Test]
-		public void Execute_NuGetProjectIsBuildIntegratedProject_PostProcessingIsRun ()
-		{
-			CreateAction ();
-			AddInstallPackageIntoProjectAction ("Test", "1.2");
-
-			action.Execute ();
-
-			Assert.AreEqual (action.ProjectContext, nugetProject.PostProcessProjectContext);
-		}
-
-		[Test]
 		public void Execute_PackageHasALicenseToBeAcceptedWhichIsAccepted_UserPromptedToAcceptLicenses ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			action.LicenseAcceptanceService.AcceptLicensesReturnValue = true;
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			var metadata = packageMetadataResource.AddPackageMetadata ("Test", "1.2");
@@ -503,33 +492,16 @@ namespace MonoDevelop.PackageManagement.Tests
 		public void Execute_PackageHasALicenseToBeAcceptedWhichIsNotAccepted_ExceptionThrown ()
 		{
 			CreateAction ();
+			AddPackageToUpdate ("Test", "1.0");
 			action.LicenseAcceptanceService.AcceptLicensesReturnValue = false;
 			AddInstallPackageIntoProjectAction ("Test", "1.2");
 			var metadata = packageMetadataResource.AddPackageMetadata ("Test", "1.2");
 			metadata.RequireLicenseAcceptance = true;
 			metadata.LicenseUrl = new Uri ("http://test.com/license");
 
-			Exception ex = Assert.Throws (typeof(AggregateException), () => action.Execute ());
+			Exception ex = Assert.Throws (typeof (AggregateException), () => action.Execute ());
 
 			Assert.AreEqual ("Licenses not accepted.", ex.GetBaseException ().Message);
 		}
-
-		[Test]
-		public void Execute_OnePackageIsUpdated_OpenReadmeFileForPackageIfItExists ()
-		{
-			CreateAction ();
-			AddPackageToProject ("Test", "1.0");
-			AddUninstallPackageFromProjectAction ("Test", "1.0");
-			AddInstallPackageIntoProjectAction ("Test", "1.2");
-
-			action.Execute ();
-
-			var packageIdentity = packageManager.OpenReadmeFilesForPackages.Single ();
-			Assert.AreEqual (nugetProject, packageManager.OpenReadmeFilesForProject);
-			Assert.AreEqual (action.ProjectContext, packageManager.OpenReadmeFilesWithProjectContext);
-			Assert.AreEqual ("Test", packageIdentity.Id);
-			Assert.AreEqual ("1.2", packageIdentity.Version.ToString ());
-		}
 	}
 }
-

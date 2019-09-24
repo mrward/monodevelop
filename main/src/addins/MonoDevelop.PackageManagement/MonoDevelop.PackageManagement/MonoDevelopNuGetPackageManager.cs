@@ -88,6 +88,21 @@ namespace MonoDevelop.PackageManagement
 				token);
 		}
 
+		public Task ExecuteNuGetProjectActionsAsync (
+			IEnumerable<NuGetProject> nuGetProjects,
+			IEnumerable<NuGetProjectAction> nuGetProjectActions,
+			INuGetProjectContext nuGetProjectContext,
+			SourceCacheContext sourceCacheContext,
+			CancellationToken token)
+		{
+			return packageManager.ExecuteNuGetProjectActionsAsync (
+				nuGetProjects,
+				nuGetProjectActions,
+				nuGetProjectContext,
+				sourceCacheContext,
+				token);
+		}
+
 		public Task<ResolvedPackage> GetLatestVersionAsync (
 			string packageId,
 			NuGetProject project,
@@ -167,6 +182,25 @@ namespace MonoDevelop.PackageManagement
 				secondarySources,
 				token
 			);
+		}
+
+		public Task<IEnumerable<NuGetProjectAction>> PreviewUpdatePackagesAsync (
+			List<PackageIdentity> packageIdentities,
+			IEnumerable<NuGetProject> nuGetProjects,
+			ResolutionContext resolutionContext,
+			INuGetProjectContext nuGetProjectContext,
+			IEnumerable<SourceRepository> primarySources,
+			IEnumerable<SourceRepository> secondarySources,
+			CancellationToken token)
+		{
+			return packageManager.PreviewUpdatePackagesAsync (
+				packageIdentities,
+				nuGetProjects,
+				resolutionContext,
+				nuGetProjectContext,
+				primarySources,
+				secondarySources,
+				token);
 		}
 
 		public Task<IEnumerable<NuGetProjectAction>> PreviewUninstallPackageAsync (

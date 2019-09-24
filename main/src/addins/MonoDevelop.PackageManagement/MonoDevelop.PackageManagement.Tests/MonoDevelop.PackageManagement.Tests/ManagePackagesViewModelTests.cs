@@ -1812,24 +1812,18 @@ namespace MonoDevelop.PackageManagement.Tests
 			Assert.AreEqual ("Test", package.Id);
 			Assert.AreEqual ("0.2", package.Version.ToString ());
 
-			// Check two install actions - one for each project.
+			// Check install actions
 			var selectedProjects = new [] { project, project2 };
 			var actions = viewModel.CreatePackageActions (new [] { package }, selectedProjects).ToList ();
 
-			Assert.AreEqual (2, actions.Count);
-			var action = actions [0] as InstallNuGetPackageAction;
+			Assert.AreEqual (1, actions.Count);
+			var action = actions [0] as UpdateMultipleNuGetPackagesAction;
 			Assert.AreEqual (PackageActionType.Install, action.ActionType);
-			Assert.AreEqual ("Test", action.PackageId);
-			Assert.AreEqual ("0.2", action.Version.ToString ());
-			Assert.AreEqual ("LibA", action.Project.Name);
-			Assert.IsTrue (action.LicensesMustBeAccepted);
-
-			action = actions [1] as InstallNuGetPackageAction;
-			Assert.AreEqual (PackageActionType.Install, action.ActionType);
-			Assert.AreEqual ("Test", action.PackageId);
-			Assert.AreEqual ("0.2", action.Version.ToString ());
-			Assert.AreEqual ("LibB", action.Project.Name);
-			Assert.IsFalse (action.LicensesMustBeAccepted);
+			Assert.AreEqual ("Test", action.PackagesToUpdate [0].Id);
+			Assert.AreEqual ("0.2", action.PackagesToUpdate [0].Version.ToString ());
+			Assert.AreEqual ("LibA", action.DotNetProjects [0].Name);
+			Assert.AreEqual (1, action.PackagesToUpdate.Count);
+			Assert.AreEqual ("LibB", action.DotNetProjects [1].Name);
 		}
 
 		[Test]
@@ -1865,24 +1859,21 @@ namespace MonoDevelop.PackageManagement.Tests
 			Assert.AreEqual ("TestB", package.Id);
 			Assert.AreEqual ("0.3", package.Version.ToString ());
 
-			// Check two install actions - one for each project.
+			// Check install action
 			var selectedProjects = new [] { project, project2 };
 			var actions = viewModel.CreatePackageActions (viewModel.PackageViewModels, selectedProjects).ToList ();
 
-			Assert.AreEqual (2, actions.Count);
-			var action = actions [0] as InstallNuGetPackageAction;
+			Assert.AreEqual (1, actions.Count);
+			var action = actions [0] as UpdateMultipleNuGetPackagesAction;
 			Assert.AreEqual (PackageActionType.Install, action.ActionType);
-			Assert.AreEqual ("TestA", action.PackageId);
-			Assert.AreEqual ("0.2", action.Version.ToString ());
-			Assert.AreEqual ("LibA", action.Project.Name);
-			Assert.IsTrue (action.LicensesMustBeAccepted);
+			Assert.AreEqual ("TestA", action.PackagesToUpdate [0].Id);
+			Assert.AreEqual ("0.2", action.PackagesToUpdate [0].Version.ToString ());
+			Assert.AreEqual ("LibA", action.DotNetProjects [0].Name);
 
-			action = actions [1] as InstallNuGetPackageAction;
 			Assert.AreEqual (PackageActionType.Install, action.ActionType);
-			Assert.AreEqual ("TestB", action.PackageId);
-			Assert.AreEqual ("0.3", action.Version.ToString ());
-			Assert.AreEqual ("LibB", action.Project.Name);
-			Assert.IsTrue (action.LicensesMustBeAccepted);
+			Assert.AreEqual ("TestB", action.PackagesToUpdate [1].Id);
+			Assert.AreEqual ("0.3", action.PackagesToUpdate [1].Version.ToString ());
+			Assert.AreEqual ("LibB", action.DotNetProjects [1].Name);
 		}
 
 		[Test]
