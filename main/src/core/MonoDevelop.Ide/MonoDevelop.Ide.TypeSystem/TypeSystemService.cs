@@ -116,6 +116,7 @@ namespace MonoDevelop.Ide.TypeSystem
 			}
 
 			FileService.FileChanged += FileService_FileChanged;
+			FileService.FileRemoved += FileService_FileRemoved;
 
 			desktopService = await serviceProvider.GetService<DesktopService> ();
 
@@ -125,6 +126,7 @@ namespace MonoDevelop.Ide.TypeSystem
 		protected override Task OnDispose ()
 		{
 			FileService.FileChanged -= FileService_FileChanged;
+			FileService.FileRemoved -= FileService_FileRemoved;
 			if (rootWorkspace != null)
 				rootWorkspace.ActiveConfigurationChanged -= HandleActiveConfigurationChanged;
 			FinalizeTrackedProjectHandling ();
@@ -171,6 +173,47 @@ namespace MonoDevelop.Ide.TypeSystem
 					});
 				} catch (Exception) { }
 			});
+		}
+
+		void FileService_FileRemoved (object sender, FileEventArgs e)
+		{
+			try {
+				foreach (var file in e) {
+					if (file.FileName.FileName == ".editorconfig") {
+						OnEditorConfigDocumentRemoved (file.FileName);
+					}
+				}
+			} catch (Exception ex) {
+				LoggingService.LogError ("TypeSystemService.FileService_FileRemoved error", ex);
+			}
+		}
+
+		void OnEditorConfigDocumentRemoved2 (FilePath fileName)
+		{
+			foreach (var workspace in AllWorkspaces) {
+				var mdWorkspace = workspace as MonoDevelopWorkspace;
+				if (mdWorkspace == null)
+					continue;
+				foreach (var mdProject in mdWorkspace.MonoDevelopSolution.GetAllProjects ()) {
+					foreach (var projectId in mdWorkspace.GetProjectIds (mdProject)) {
+						var docId = mdWorkspace.GetDocumentId (projectId, fileName);
+						if (docId != null) {
+							//mdWorkspace.TryApplyChanges (nAnalyzerConfigDocumentRemoved (docId);
+						}
+					}
+				}
+			}
+		}
+
+		void OnEditorConfigDocumentRemoved (FilePath fileName)
+		{
+			foreach (var workspace in AllWorkspaces) {
+				var mdWorkspace = workspace as MonoDevelopWorkspace;
+				if (mdWorkspace == null)
+					continue;
+				// TODO: Check file path here.
+				mdWorkspace.ReloadProjects (CancellationToken.None).Ignore ();
+			}
 		}
 
 		internal async Task<MonoDevelopWorkspace> CreateEmptyWorkspace ()

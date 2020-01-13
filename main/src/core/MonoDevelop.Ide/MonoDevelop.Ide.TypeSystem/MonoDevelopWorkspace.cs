@@ -483,7 +483,7 @@ namespace MonoDevelop.Ide.TypeSystem
 			return await TryLoadSolution (cancellationToken).ConfigureAwait (false);
 		}
 
-		async Task ReloadProjects (CancellationToken cancellationToken)
+		internal async Task ReloadProjects (CancellationToken cancellationToken)
 		{
 			try {
 				using var cts = CancellationTokenSource.CreateLinkedTokenSource (cancellationToken, src.Token);
@@ -1317,6 +1317,7 @@ namespace MonoDevelop.Ide.TypeSystem
 
 		protected override void ApplyAnalyzerConfigDocumentRemoved (DocumentId documentId)
 		{
+			LoggingService.LogInfo ("ApplyAnalyzerConfigDocumentRemoved {0}", documentId);
 			base.ApplyAnalyzerConfigDocumentRemoved (documentId);
 		}
 
